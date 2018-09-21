@@ -205,6 +205,19 @@ void PowerOn_Led(void)
     LED_Clear(0);
 }
 
+void TouchLED_ALL(uint8_t flag)
+{
+	if(flag == 1)
+	{
+		LED_SetDuty(Purple, 63);
+		LED_SetALed(4, Purple, 63);
+	}
+	else
+	{
+	   LED_Clear(0);
+	}
+}
+
 void UpCom_Process(UpCom_Rx_TypDef *prx_ubuf, DevicePara_TypDef *p_device)
 {
 
@@ -755,6 +768,15 @@ void Aes_Key_Read(void)
 #endif
 }
 
+void LANGroup_AddrRead(void)
+{
+	uint8_t temp[4]={0};
+	Eeprom_Read(GD_ADDR,(uint16_t*)temp,4/2);
+	memcpy(LANGroup_Addr,temp,3);
+}
+
+
+
 /* USER CODE END 0 */
 
 /**
@@ -781,7 +803,7 @@ int main(void)
   SystemClock_Config();
 
   /* USER CODE BEGIN SysInit */
-
+  delay_init(72);
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
@@ -792,24 +814,19 @@ int main(void)
   MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
 
-    HAL_TIM_Base_Start(&htim1);
+    HAL_TIM_Base_Start_IT(&htim1);
     HAL_UART_Receive_IT(&huart1, &uart1_rec, 1);
     HAL_UART_Receive_IT(&huart2, &uart2_rec, 1);
 	SN3218_Init();
 	PowerOn_Led();
 	MacAddr_Read();
 	Aes_Key_Read();
+	LANGroup_AddrRead();
 
 	Get_WireLessChannel(Wireless_Channel);
     Wireless_Init();
     Si4438_Receive_Start(Wireless_Channel[0]);
-    //RTX_OS_Init();
-    //STMFLASH_Write(STM32_FLASH_END - 16, (uint16_t *)"1234567890", 10 / 2);
-    
-    
 
-
-    //SN3218_PwInit();
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -939,7 +956,7 @@ static void MX_TIM1_Init(void)
   htim1.Instance = TIM1;
   htim1.Init.Prescaler = 72-1;
   htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim1.Init.Period = 65000-1;
+  htim1.Init.Period = 1000-1;
   htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim1.Init.RepetitionCounter = 0;
   htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;

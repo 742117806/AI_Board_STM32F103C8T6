@@ -114,22 +114,21 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 *  返 回 值: 无 
 ********************************************************************************************************* 
 */
+extern void SysTick_Handle(void);
 uint32_t test_time1_cnt=0;
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
-	extern TIM_HandleTypeDef htim1;
-	
+	extern TIM_HandleTypeDef htim1;	
 	if(htim->Instance == htim1.Instance)
 	{
-		#if OS_USE
-		 time1_delay_cnt ++;		 
-		#endif
-		test_time1_cnt++;
-		if(test_time1_cnt>1000)
+		SYSTICK_CNT++;
+		SysTick_Handle();
+		
+		if((SYSTICK_CNT % 1000) == 0)
 		{
-			test_time1_cnt = 0;
-			printf("HAL_TIM_PeriodElapsedCallback");
+		  time_dat++;
 		}
+		
 	}
 }
 
@@ -140,16 +139,10 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 *  返 回 值: 无 
 ********************************************************************************************************* 
 */
-extern void SysTick_Handle(void);
+
 void HAL_SYSTICK_Callback(void)
 {
-	SYSTICK_CNT++;
-    SysTick_Handle();
-    
-    if((SYSTICK_CNT % 1000) == 0)
-    {
-      time_dat++;
-    }
+
 }
 
 

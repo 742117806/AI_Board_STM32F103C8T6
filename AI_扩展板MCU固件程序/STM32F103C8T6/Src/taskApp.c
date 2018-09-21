@@ -4,6 +4,7 @@
 #include "RTL.h"
 #include "user_call_back.h"
 #include "spi.h"
+#include "delay.h"
 /* 
 ********************************************************************************************************** 
                       函数声明 
@@ -59,17 +60,22 @@ extern uint32_t delay_flag;
 extern void Time1Delay_us(uint32_t n_us);
 __task void AppTaskLED(void)
 {
+	uint8_t flag = 0;
+	
+//	SN3218_Init();
+//	PowerOn_Led();
+    //extern SPI_HandleTypeDef hspi1;
+   // uint8_t wireless_init_result;
 
-    extern SPI_HandleTypeDef hspi1;
-    uint8_t wireless_init_result;
-
-    wireless_init_result = Wireless_Init();
+    //wireless_init_result = Wireless_Init();
     //DEBUG_Printf("Wireless_Init() = %d\r\n", wireless_init_result);
     //Si4438_Receive_Start(Wireless_Channel[0]);	//开始接收无线数据
     while (1)
     {
 		
-        LEDR_TOGGLE();
+       // LEDR_TOGGLE();
+	    //TouchLED_ALL(flag^1);
+		delay_ms(30);
         os_dly_wait(110);
     }
 }
