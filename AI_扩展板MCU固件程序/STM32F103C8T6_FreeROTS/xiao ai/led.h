@@ -1,7 +1,8 @@
 #ifndef LED_H_
 #define LED_H_
 
-
+#include "stm32f1xx.h"
+#include "frameType.h"
 //#include "peri_includes.h"
 //#include "frame_process.h"
 /****************************** SN3218 *******************************/
@@ -29,16 +30,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
 #define SteadyMode                0x10
 #define BreatheMode               0x01
 #define RunMode                   0x80
@@ -53,32 +44,7 @@
 #define On_Status                 0x20
 #define OntoOff_Status            0x30
 
-/*
-#define  Series1_1                 0x11
-#define  Series1_2                 0x12
-#define  Series1_3                 0x14
 
-#define  Series2_12Same            0x13
-#define  Series2_13Same            0x15
-#define  Series2_23Same            0x16
-#define  Series3_123Same           0x17
-  
-#define  Series2_12                0x20
-#define  Series2_21                0x21
-  
-#define  Series2_13                0x22
-#define  Series2_31                0x23
-  
-#define  Series2_23                0x24
-#define  Series2_32                0x25
-  
-#define  Series3_123               0x30
-#define  Series3_132               0x31
-#define  Series3_213               0x32
-#define  Series3_231               0x33
-#define  Series3_312               0x34
-#define  Series3_321               0x35
-*/
 
 #define Serier_End                0x00
 #define Serier_Start1             0x01
@@ -124,49 +90,36 @@ typedef enum
   Series3_321 = 0x35,
 } Led_Series_TypeDef;
 
-/******************LED模式宏定义**************/
-#define Led_SetMode1            0x01
-#define Led_SetMode2            0x02
-#define Led_SetMode3            0x03
-#define Led_SetMode4            0x04
-#define Led_SetMode5            0x05
-#define Led_SetMode6            0x06
 
 
-/******************时尚版LED颜色宏定义**************/
-#define LedSetColor_Blue            0x01
-#define LedSetColor_Orange          0x02
-#define LedSetColor_Purple          0x03
+#define LED_AROUND_LIGHT_VALUE				  5             //LED灯的亮度值
+#define LED_CENTRE_LIGHT_VALUE				  255         //LED灯的亮度值
 
 
-/******************标准版LED颜色宏定义**************/
-#define LedSetColor_White           0x01
-#define LedSetColor_Red             0x02
-#define LedSetColor_Green           0x03
+#define LED_KEY1_ORANGE_MAP_BITS			0x0A		//按键1指示灯橙色
+#define LED_KEY1_BLUE_MAP_BITS			    0x05        //按键1指示灯蓝色
+#define LED_KEY1_ORANGE_BLUE_MAP_BITS 	    0x0F		//按键1指示灯橙色+蓝色
 
-/************* 默认参数 *****************/
-/*
-#define Alwayslight_Brightness        255
-#define Water_Brightness              255
-//#define MiddleLed_Brightness          63
-#define Water_Gap                     10
-#define Breathe_Gap                   4
-#define BreatheMiddle_Gap             6
-*/
+#define LED_KEY2_ORANGE_MAP_BITS			0xA0
+#define LED_KEY2_BLUE_MAP_BITS			    0x50
+#define LED_KEY2_ORANGE_BLUE_MAP_BITS 	    0xF0
+
+#define LED_KEY3_ORANGE_MAP_BITS			0x2800
+#define LED_KEY3_BLUE_MAP_BITS			    0x1400
+#define LED_KEY3_ORANGE_BLUE_MAP_BITS 	    0x3C00
+
+#define LED_KEY4_ORANGE_MAP_BITS			0x28000
+#define LED_KEY4_BLUE_MAP_BITS			    0x14000
+#define LED_KEY4_ORANGE_BLUE_MAP_BITS 	    0x3C000
+
+#define LED_ORANGE_BLUE_MAP_BITS	        0x3FCFF			//全部外围灯
+
+#define LED_ORANGE_MAP_BITS		            0x2A8AA			//外围橙色灯
+#define LED_BLUE_MAP_BITS                   0x15455			//外围蓝色灯
+#define LED_ALL_MAP_BITS					0X3FFFF			//所有灯
 
 
-/************* 默认参数 *****************/
-#define Alwayslight_Brightness        15
-#define Water_Brightness              15
-//#define MiddleLed_Brightness          63
-#define Water_Gap                     10
-#define Breathe_Gap                   3
-#define Breathe_AlBrigth              20
-#define Breathe_AlExting              20
-
-#define BreatheMiddle_Gap             8
-#define LedMode5_Time                 63
-
+#define LED_CENTRE_MAP_BITS					0x300
 
 
 typedef enum
@@ -247,7 +200,30 @@ typedef struct
 }DevicePara_TypDef;
 
 
+typedef enum KEY_LED_
+{
+  	KEY1_ON_ORANGE = 0x10,
+	KEY1_ON_BLUE,
+	KEY2_ON_ORANGE,
+	KEY2_ON_BLUE,
+	KEY3_ON_ORANGE,
+	KEY3_ON_BLUE,
+	KEY4_ON_ORANGE,
+	KEY4_ON_BLUE,
+	KEY_RES,
+}KEY_LED_e;
 
+typedef enum LED_INDEX_MODE_
+{
+	LED_INDEX_MODE_AROUND_KEY1_ON=0x0100,
+	LED_INDEX_MODE_AROUND_KEY1_OFF=0x0200,
+	LED_INDEX_MODE_AROUND_KEY2_ON=0x0300,
+	LED_INDEX_MODE_AROUND_KEY2_OFF=0x0400,
+	LED_INDEX_MODE_AROUND_KEY3_ON=0x0500,
+	LED_INDEX_MODE_AROUND_KEY3_OFF=0x0600,
+	LED_INDEX_MODE_AROUND_KEY4_ON=0x0700,
+	LED_INDEX_MODE_AROUND_KEY4_OFF=0x0800,
+}LED_INDEX_MODE_e;
 
 /************************* 外部变量 ***************************/
 extern LED_Control_TypDef LED_Buf;
@@ -272,6 +248,21 @@ void Led_Mode5(DevicePara_TypDef *p_device, Led_Color_TypeDef colour);
 
 void LedMiddle_Gradually_Brighten(Led_Color_TypeDef color);
 void LedMiddle_Gradually_Dark(Led_Color_TypeDef color);
+
+void SN3218A_RegWirte(uint8_t regAddr,uint8_t value);
+void LED_LightCtrl(uint32_t ledBits,uint8_t ledVal);
+//外围灯熄灭
+void LED_AroundOff(void);
+
+//外围灯点亮
+void LED_AroundOn(LedColor_e color);
+void LED_AroundVolIndex(uint8_t vol);
+void LED_Switch(uint32_t ledBits);
+void LED_CentreOn(void);
+void LED_Key1Show(LedColor_e color);
+void LED_Key3Show(LedColor_e color);
+void LED_Breath(uint32_t ledBits, uint8_t brightMax,uint8_t speed);
+void LED_Flow(LedColor_e color,uint8_t bright,uint8_t speed);
 
 #endif
 

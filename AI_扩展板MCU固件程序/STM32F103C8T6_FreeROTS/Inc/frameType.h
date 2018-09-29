@@ -80,6 +80,30 @@ typedef struct DeviceInfo_
 	uint8_t addr_GA[3];		//群众地址
 }DeviceInfo_t;
 
+typedef enum LedCmdType_
+{
+	AROUND_OFF,         //外围灯熄灭
+	AROUND_BREATH,      //外围灯呼吸模式
+	AROUND_ON,	        //外围灯点亮
+	AROUND_FLOW,        //外围灯流水模式
+	CENTRE_MODE,		//中间灯模式
+	AROUND_INDEX,		//外围灯按个点亮	
+}LedCmdType_e;
+
+typedef enum LedColor_
+{	
+	INVALID,
+	BLUE,
+	RED_OR_ORANGE,
+	GREEN_OR_PURPLE,
+	WHITE,
+}LedColor_e;
+
+typedef struct LedFunc_
+{
+   LedColor_e ledColor:4;
+   LedCmdType_e cmdType:4;
+}LedFunc_t;
 
 #endif
 

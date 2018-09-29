@@ -295,6 +295,7 @@ uint8_t Encrypt_Convert(uint8_t *p_source, uint8_t len, uint8_t Convert_Mode)
 ///////////////////////////////////////////////////////////////////////////////////
 
 //LED控制命令的处理
+#if 0
 void Led_Control_Process(uint8_t led_setval, DevicePara_TypDef *p_device)
 {
     if ((led_setval & 0xf0) == 0x40)
@@ -340,6 +341,7 @@ void Led_Control_Process(uint8_t led_setval, DevicePara_TypDef *p_device)
         }
     }
 }
+#endif
 
 //返回0表示解出来的AES符合格式，返回非1表示解出来的AES不符合格式,返回2表示AES已存在
 uint8_t SecretKey_Process(uint8_t *p)
@@ -424,7 +426,7 @@ void Local_CmdFrame_Process(uint8_t *p_source, HKFrame_TypDef *p_framebuf, Devic
 
     if (memcmp(&p_source[Region_DataIDNumber], Led_Control_ID, 3) == 0)
     {
-        Led_Control_Process(p_source[Region_DataValNumber], p_device);
+        //Led_Control_Process(p_source[Region_DataValNumber], p_device);
         p[Region_DataLenNumber] = 0;
         reply_flag = 1;
     }
@@ -843,76 +845,6 @@ void UpReport_Start(HKFrame_TypDef *p_framebuf)
 #endif
 }
 
-void UpReport_Process(HKFrame_TypDef *p_framebuf, DevicePara_TypDef *p_device)
-{
-    uint8_t AFN_val = 0, data_val;
-    uint8_t upreport_flag = 0;
-    uint8_t *p = p_framebuf->FrameProcess_Buf;
-
-    if (p_framebuf->RetryBuf_Space == 0Xff)
-        return; //
-
-    if ((p_device->UpReport_Flag & (1 << Key_Event)) == (1 << Key_Event)) //
-    {
-        p_device->UpReport_Flag &= ~(1 << Key_Event);
-        switch (p_device->Touch_Val)
-        {
-        case Key1_ShortVal:
-            AFN_val |= (1 << 0);
-            data_val = 0;
-            break;
-
-        case Key1_LongVal:
-            AFN_val |= (1 << 0);
-            data_val = 1;
-            break;
-
-        case Key2_ShortVal:
-            AFN_val |= (1 << 1);
-            data_val = 0;
-            break;
-
-        case Key2_LongVal:
-            AFN_val |= (1 << 1);
-            data_val = 1;
-            break;
-
-        case Key3_ShortVal:
-            AFN_val |= (1 << 2);
-            data_val = 0;
-            break;
-
-        case Key3_LongVal:
-            AFN_val |= (1 << 2);
-            data_val = 1;
-            break;
-
-        case Key4_ShortVal:
-            AFN_val |= (1 << 3);
-            data_val = 0;
-            break;
-
-        case Key4_LongVal:
-            AFN_val |= (1 << 3);
-            data_val = 1;
-            break;
-
-        default:
-            break;
-        }
-        p[Region_DataLenNumber] = 5;
-        p[Region_DataAFNNumber] = AFN_val;
-        memmove(&p[Region_DataIDNumber], Key_Event_ID, 3);
-        p[Region_DataValNumber] = data_val;
-
-        p_device->Touch_Val = 0;
-        upreport_flag = 1;
-    }
-    if (upreport_flag)
-    {
-        UpReport_Start(p_framebuf);
-    }
-}
 
 //电器端使用（重试函数）
 void Retransmission_Process(HKFrame_TypDef *p_framebuf)

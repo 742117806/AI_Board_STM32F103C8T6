@@ -140,24 +140,63 @@ void PowerOn_Led(void)
 {
     //Fashion_ParaBuf.Led4_CotrolPara = 0x43;
     //LED_SetALed(4, Purple, 63);
-    LED_SetDuty(Purple, 63);
-    LED_SetALed(4, Purple, 63);
-    SysDelay_Xms(2000);
+    //LED_SetDuty(Purple, 63);
+    //LED_SetALed(4, Purple, 63);
+    //SysDelay_Xms(2000);
 
-    LED_Clear(0);
+    //LED_Clear(0);
 }
 
-void TouchLED_ALL(uint8_t flag)
+//void TouchLED_ALL(uint8_t flag)
+//{
+//	if(flag == 1)
+//	{
+//		LED_SetDuty(Purple, 63);
+//		LED_SetALed(4, Purple, 63);
+//	}
+//	else
+//	{
+//	   LED_Clear(0);
+//	}
+//}
+
+
+void FrameCmdAck(uint8_t *rxData)
 {
-	if(flag == 1)
+	FRAME_CMD_t frameAck;
+	uint8_t frameLen;
+	FRAME_CMD_t *frameCmd;
+	
+	frameCmd =  (FRAME_CMD_t*)rxData;
+
+	memset(&frameAck,0x00,16);					//先清除数据 (清除前面16个字节，因为应答的数据长度不超过16个)
+	memcpy(&frameAck.addr_DA,Self_LogicAddr,4);			
+	frameAck.FSQ.frameNum =  frameCmd->FSQ.frameNum;
+	frameAck.Ctrl.dir = 1;
+	frameAck.DataLen = 0;
+	frameLen = Frame_Compose((uint8_t*)&frameAck);
+
+	vTaskSuspendAll();  //开启任务调度锁
+	UartSendBytes(USART1,(uint8_t*)&frameAck,frameLen);
+	xTaskResumeAll ();  //关闭任务调度锁 
+}
+
+extern osThreadId LedTaskHandle;
+
+void LED_CmdProcess(uint8_t *rxData)
+{
+	FRAME_CMD_t *frameCmd;
+	
+	frameCmd =  (FRAME_CMD_t*)rxData;
+	//ledFunc =  (LedFunc_t*)frameCmd->userData.content;
+	
+	if((frameCmd->userData.Index[0]==0x01)&&
+	(frameCmd->userData.Index[1]==0x00)&&
+	(frameCmd->userData.Index[2]==0x21))
 	{
-		LED_SetDuty(Purple, 63);
-		LED_SetALed(4, Purple, 63);
-	}
-	else
-	{
-	   LED_Clear(0);
-	}
+		xTaskNotify(LedTaskHandle, frameCmd->userData.content[0],eSetValueWithOverwrite);
+		//FrameCmdAck(rxData);
+	}	
 }
 
 void UpCom_Process(UpCom_Rx_TypDef *prx_ubuf, DevicePara_TypDef *p_device)
@@ -165,7 +204,7 @@ void UpCom_Process(UpCom_Rx_TypDef *prx_ubuf, DevicePara_TypDef *p_device)
 
     if (prx_ubuf->Rx_Status == UartRx_Finished)
     {
-        prx_ubuf->Rx_Status = UartRx_FrameHead;
+       
         if (0 == FrameData_Detect(prx_ubuf->Frame_Data, prx_ubuf->FrameTotalLen))
         {
             p_device->Pending_Flag &= 0xf0; //
@@ -195,11 +234,17 @@ void UpCom_Process(UpCom_Rx_TypDef *prx_ubuf, DevicePara_TypDef *p_device)
                     // UpCom_RXINT_EN();
                 }
             }
+			LED_CmdProcess(prx_ubuf->Frame_Data);
+			
         }
         else
         {
             // UpCom_RXINT_EN();
         }
+		
+         prx_ubuf->Rx_Status = UartRx_FrameHead;
+		
+		
     }
 }
 
@@ -419,7 +464,7 @@ void System_8msTick_Process(void)
     }
 #endif
 }
-
+ #if 0
 void Led_Process(DevicePara_TypDef *p_device, Led_Color_TypeDef colour)
 {
 
@@ -526,6 +571,7 @@ void Led_Process(DevicePara_TypDef *p_device, Led_Color_TypeDef colour)
     }
     Led_Mode4(p_device);
 }
+#endif
 void MacFrame_Process(uint8_t *p_source, uint8_t *p_buf)
 {
     uint16_t crc16_val;
@@ -648,19 +694,6 @@ void RxData_Process(HKFrame_TypDef *p_framebuf, DevicePara_TypDef *p_device)
     }
 }
 
-void Touch_Process(DevicePara_TypDef *p_device)
-{
-    if (!p_device->Touch_Val)
-    {
-        Touch1_Detect(p_device);
-        Touch2_Detect(p_device);
-        Touch3_Detect(p_device);
-        Touch4_Detect(p_device);
-        if (p_device->Touch_Val)
-            p_device->UpReport_Flag |= (1 << Key_Event);
-    }
-}
-
 void MacAddr_Read(void)
 {
 	uint32_t delay_cnt = 0;
@@ -718,6 +751,18 @@ void LANGroup_AddrRead(void)
 }
 
 
+//密文初始化
+void AES_Init(void)
+{
+	//计算出密文，存放在aes_w，供加解密用
+	memcpy(&aes_out[3*RsaByte_Size],LANGroup_Addr,3);
+	
+	Rsa_Decode(aes_out);  
+	key_expansion(aes_out, aes_w);  
+	Secret_KeyOk_Flag = 1;
+}
+
+
 
 /* USER CODE END 0 */
 
@@ -728,6 +773,7 @@ void LANGroup_AddrRead(void)
   */
 int main(void)
 {
+
   /* USER CODE BEGIN 1 */
 
   /* USER CODE END 1 */
@@ -760,11 +806,11 @@ int main(void)
     HAL_UART_Receive_IT(&huart1, &uart1_rec, 1);
     HAL_UART_Receive_IT(&huart2, &uart2_rec, 1);
 	SN3218_Init();
-	PowerOn_Led();
+	//PowerOn_Led();
 	MacAddr_Read();
 	Aes_Key_Read();
-	LANGroup_AddrRead();
-
+	//LANGroup_AddrRead();
+    //AES_Init();
 	Get_WireLessChannel(Wireless_Channel);
     Wireless_Init();
     Si4438_Receive_Start(Wireless_Channel[0]);
@@ -804,6 +850,16 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+//  	I2C_Start();
+//	I2C_Write1Byte(SN3218_ADDR);
+//	I2C_Write1Byte(0x01);
+//	I2C_Write1Byte(0x02);
+//	I2C_Write1Byte(64);
+//	I2C_Stop();
+//	
+//	Write_SN3218(Addr_DataRefresh, 0x55); 
+//	delay_ms(1000);
+//	SN3218_Led_Clear1();
   while (1)
   {
 

@@ -36,17 +36,29 @@
 
 
 
+#define KEY1  Touch1_RDPIN()//读取按键1
+#define KEY2  Touch2_RDPIN()//读取按键2
+#define KEY3  Touch3_RDPIN()//读取按键3
+#define KEY4  Touch4_RDPIN()//读取按键4
 
+ 
 
+#define KEY1_PRES 	0x01	//KEY1按下
+#define KEY2_PRES	0x02	//KEY2按下
+#define KEY3_PRES	0x04	//KEY3按下
+#define KEY4_PRES   0x08	//KEY4按下
+#define KEY1_LONG_PRES 	0x11	//KEY1按下
+#define KEY2_LONG_PRES 	0x22	//KEY1按下
+#define KEY3_LONG_PRES 	0x44	//KEY1按下
+#define KEY4_LONG_PRES 	0x88	//KEY1按下
+#define KEY_UP 		6	//按键抬起
 
 
 
 
 /************************* 外部函数 ***************************/
-void Touch1_Detect(DevicePara_TypDef *p_fashionpara);
-void Touch2_Detect(DevicePara_TypDef *p_fashionpara);
-void Touch3_Detect(DevicePara_TypDef *p_fashionpara);
-void Touch4_Detect(DevicePara_TypDef *p_fashionpara);
+
+uint8_t TouchKeyScan(uint8_t mode);
 
 
 #endif

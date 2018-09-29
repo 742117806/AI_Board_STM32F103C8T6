@@ -223,7 +223,7 @@ void UpCom_Process(UpCom_Rx_TypDef *prx_ubuf, DevicePara_TypDef *p_device)
 
     if (prx_ubuf->Rx_Status == UartRx_Finished)
     {
-        prx_ubuf->Rx_Status = UartRx_FrameHead;
+        //prx_ubuf->Rx_Status = UartRx_FrameHead;		//避免数据没有处理完被覆盖
         if (0 == FrameData_Detect(prx_ubuf->Frame_Data, prx_ubuf->FrameTotalLen))
         {
             p_device->Pending_Flag &= 0xf0; //
@@ -258,6 +258,7 @@ void UpCom_Process(UpCom_Rx_TypDef *prx_ubuf, DevicePara_TypDef *p_device)
         {
             // UpCom_RXINT_EN();
         }
+		prx_ubuf->Rx_Status = UartRx_FrameHead;     //再次进入串口中断接收状态
     }
 }
 

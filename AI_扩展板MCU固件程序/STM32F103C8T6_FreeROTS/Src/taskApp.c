@@ -6,6 +6,7 @@
 #include "spi.h"
 #include "delay.h"
 #include "frame_process.h"
+#include "led.h"
 /* 
 ********************************************************************************************************** 
                       函数声明 
@@ -15,7 +16,7 @@ extern void System_8msTick_Process(void);
 extern void WireLess_Process(WLS *p_wl, DevicePara_TypDef *p_device);
 extern void UpCom_Process(UpCom_Rx_TypDef *prx_ubuf, DevicePara_TypDef *p_device);
 extern void RxData_Process(HKFrame_TypDef *p_framebuf, DevicePara_TypDef *p_device);
-extern void Touch_Process(DevicePara_TypDef *p_device);
+
 extern void Led_Process(DevicePara_TypDef *p_device, Led_Color_TypeDef colour);
 /* 
 ********************************************************************************************************** 
@@ -47,31 +48,75 @@ void AppSuperviseTask(void const * argument)
 		osDelay(8);
 	}
 }
-/* StartDefaultTask function */
+uint8_t frameSeq = 0;		//帧序号
+
+void KeyUpReportCmd(uint8_t keyVal,uint8_t longFlag)
+{
+	extern uint8_t const Key_Event_ID[3];
+	extern uint8_t const Self_LogicAddr[4];
+	uint8_t frameLen = 0;
+	FRAME_CMD_t frameCmd;
+	
+	memmove(&frameCmd.addr_DA, Self_LogicAddr, LogicAddr_Len);
+	frameCmd.FSQ.frameNum = (frameSeq & 0x0f);
+    frameSeq ++;
+	frameCmd.Ctrl.dir = 1;
+	frameCmd.Ctrl.eventFlag = 1;
+	
+	frameCmd.DataLen = 5;
+	frameCmd.userData.AFN = keyVal;
+	memmove(frameCmd.userData.Index, Key_Event_ID, 3);
+	frameCmd.userData.content[0] = longFlag;
+	frameLen = Frame_Compose((uint8_t*)&frameCmd);
+	vTaskSuspendAll();  //开启任务调度锁
+	UartSendBytes(USART1,(uint8_t*)&frameCmd,frameLen);
+	xTaskResumeAll ();  //关闭任务调度锁 
+}
+
+//void LED_CmdProcess(uint8_t *rxData)
+//{
+//	FRAME_CMD_t *frameCmd;
+//	
+//	frameCmd =  (FRAME_CMD_t*)rxData;	
+//	if((frameCmd->userData.Index[0]==0x01)&&
+//	(frameCmd->userData.Index[1]==0x00)&&
+//	(frameCmd->userData.Index[2]==0x21))
+//	{
+//		xTaskNotify(LedTaskHandle, frameCmd->userData.content[0],eSetValueWithOverwrite);		//发送LED模式事件数据到LED任务
+//	}
+//	
+//}
+
 void AppUartTask(void const * argument)
 {
+	BaseType_t xResult;
+	const TickType_t xMaxBlockTime = pdMS_TO_TICKS(10); 		//10ms
+	uint32_t ulValue;
+	uint8_t keyValue;
 
-	/* USER CODE BEGIN 5 */
-
-	/* Infinite loop */
 	for(;;)
 	{
-		//DEBUG_Printf("StartDefaultTask"); 
+        xResult = xTaskNotifyWait(0x00000000, 0xFFFFFFFF,&ulValue,  xMaxBlockTime); 		//等待按键事件
+		if(xResult == pdPASS )
+		{
+			 keyValue =  ulValue&0x000000ff;					//获取按键键值
+			 KeyUpReportCmd(keyValue&0x0f,(keyValue&0xf0)>>4);  //通过串口发送按键事件帧
+		}
+		
+//		if(UpCom_RxBuf.Rx_Status == UartRx_Finished)			//串口通信命令帧接收完成
+//		{
+//			LED_CmdProcess(UpCom_RxBuf.Frame_Data);
+//		    UpCom_RxBuf.Rx_Status = UartRx_FrameHead;
+//		}
 
-
-
-        
         UpCom_Process(&UpCom_RxBuf, &Device_ParaBuf);
 
         RxData_Process(&HKFrame_Buf, &Device_ParaBuf);
         
-        if (UpCom_TxBuf.Tx_Status == UartTx_Finished)
-        {
-            UpReport_Process(&HKFrame_Buf, &Device_ParaBuf);
-        }
-		osDelay(2);
+		osDelay(1);
+
 	}
-	/* USER CODE END 5 */ 
+
 }
 /* 
 ********************************************************************************************************* 
@@ -84,12 +129,132 @@ void AppUartTask(void const * argument)
 */
 void AppLedTask(void const * argument)
 {
+	BaseType_t xResult;
+	
+	const TickType_t xMaxBlockTime = pdMS_TO_TICKS(5); 		//5ms
+	uint32_t ulValue;
+	LedFunc_t *ledFunc;
+
+	uint16_t LED_RunMode = 0;
+	uint8_t vol;
+
+	uint16_t lastVol;
+	uint8_t vol_led_delay = 0;
+	
+	uint8_t led_wakeUp;
+	
+	LED_CentreOn();
+    
+
 	for(;;)
 	{
-	   //DEBUG_Printf("\r\nAppLedTask");
-	   Led_Process(&Device_ParaBuf, Orange);
-	   osDelay(8);
-	   
+	    
+		xResult = xTaskNotifyWait(0x00000000, 0xFFFFFFFF,&ulValue,  xMaxBlockTime);  
+		if( xResult == pdPASS ) 
+		{ 
+			ledFunc = (LedFunc_t*)&ulValue;
+			
+			LED_RunMode = (uint16_t)ledFunc->cmdType|(ulValue&0xff00);
+			
+            vol = ledFunc->ledColor;
+			if((LED_RunMode == 5)||(LED_RunMode == 0x0100)||(LED_RunMode == 0x0500))	//音量控制
+			{
+				 vol_led_delay = 0;
+			}
+		}
+		
+		
+	    
+		switch(LED_RunMode)
+		{
+		case 0:
+
+			LED_AroundOff();
+			led_wakeUp = 0;     //睡眠
+			LED_RunMode = 0x8000;		//为了避免不停的写LED控制IC的寄存器
+
+			break;
+		case 1:
+			LED_Breath(LED_BLUE_MAP_BITS,20,35);
+			
+			break;
+		case 2:
+			LED_AroundOn((LedColor_e)vol);
+			led_wakeUp = 1;		//醒来
+			lastVol = vol;
+			break;
+		case 3:
+			 led_wakeUp = 2;
+			LED_Flow((LedColor_e)vol,15,10);
+			break;
+		case 4:
+			//LED_CentreOn();
+			LED_LightCtrl(LED_CENTRE_MAP_BITS,255);
+			break;
+		case 5:
+			LED_AroundVolIndex(vol);
+			vol_led_delay ++;
+			if(vol_led_delay > 100)
+			{
+				if(led_wakeUp == 1)
+				{
+					LED_RunMode = 2;
+					vol = lastVol;
+				}
+				else if(led_wakeUp == 0)
+				{				
+					LED_RunMode = 0;
+				}
+				else if(led_wakeUp == 2)
+				{
+					LED_RunMode = 3;
+					vol = lastVol;
+				}
+			}
+			break;
+		case 0x06:			//按键抬起
+
+			break;
+		case 0x0100:
+			LED_Key1Show(RED_OR_ORANGE);
+			break;
+		case 0x0200:	
+			if(led_wakeUp == 2)
+			{
+				LED_RunMode = 3;
+			}
+			else
+			{
+				LED_RunMode = 0;
+			}
+			break;
+		case 0x0500:
+			LED_Key3Show(RED_OR_ORANGE);
+			break;
+		case 0x0600:
+			if(led_wakeUp == 1)
+			{
+				LED_RunMode = 2;
+				vol = lastVol;
+			}
+			else if(led_wakeUp == 0)
+			{				
+				LED_RunMode = 0;
+			}
+			else if(led_wakeUp == 2)
+			{
+				LED_RunMode = 3;
+				vol = lastVol;
+			}
+			break;
+		default:
+
+			break;
+		}
+		
+
+		osDelay(1);
+		
 	}
 
 }
@@ -105,11 +270,55 @@ void AppLedTask(void const * argument)
 */
 void AppTouchTask(void const * argument)
 {
+	uint8_t keyValue;
+	uint8_t keyLast;		//上次按键的值
+
 	for(;;)
 	{
-	   //DEBUG_Printf("\r\nAppTouchTask");
-	   Touch_Process(&Device_ParaBuf);
-	   osDelay(8);
+
+		keyValue = TouchKeyScan(0);
+		if(keyValue > 0)
+		{
+
+			switch(keyValue)
+			{
+			case KEY1_PRES:
+				
+				xTaskNotify(LedTaskHandle, LED_INDEX_MODE_AROUND_KEY1_ON,eSetValueWithOverwrite);
+				break;
+			case KEY2_PRES:
+				xTaskNotify(UartTaskHandle, keyValue,eSetValueWithOverwrite);
+				break;
+			case KEY3_PRES:
+				xTaskNotify(LedTaskHandle, LED_INDEX_MODE_AROUND_KEY3_ON,eSetValueWithOverwrite);
+				break;
+			case KEY4_PRES:
+				xTaskNotify(UartTaskHandle, keyValue,eSetValueWithOverwrite);
+				break;
+			case KEY1_LONG_PRES:
+				xTaskNotify(UartTaskHandle, keyValue,eSetValueWithOverwrite);
+				break;
+			case KEY_UP:
+				if(keyLast == KEY1_PRES)
+				{
+				    xTaskNotify(UartTaskHandle, keyLast,eSetValueWithOverwrite);
+					xTaskNotify(LedTaskHandle, 0x0200,eSetValueWithOverwrite);
+				} 
+				else  if(keyLast == KEY3_PRES)
+				{
+					xTaskNotify(UartTaskHandle, keyLast,eSetValueWithOverwrite);
+				    xTaskNotify(LedTaskHandle, 0x0600,eSetValueWithOverwrite);
+				}
+				
+				break;
+			default:
+				
+				break;
+		   }
+		   keyLast = keyValue;		//更新上次值
+	   }
+
+	   osDelay(10);
 	}
 
 }

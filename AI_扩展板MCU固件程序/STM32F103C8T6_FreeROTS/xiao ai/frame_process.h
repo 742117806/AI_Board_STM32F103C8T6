@@ -173,6 +173,7 @@ extern HKFrame_TypDef HKFrame_Buf;
 extern uint8_t LANGroup_Addr[3];
 extern uint8_t Local_MAC_Addr[MAC_Data_Len + 5];
 extern BeiJingTime_TypDef RunningTime_Buf;
+extern uint8_t const Self_LogicAddr[4];
 /************************* Íâ²¿º¯Êý ***************************/
 
 
@@ -183,7 +184,7 @@ uint8_t Frame_Check(uint8_t *p,uint8_t Len);
 uint8_t Frame_Compose(uint8_t *p);
 uint8_t MACRead_Process(uint8_t *p_buf);
 void Frame_Process(uint8_t *p_source, uint8_t len, HKFrame_TypDef *p_framebuf, DevicePara_TypDef *p_fashionpara);
-void UpReport_Process(HKFrame_TypDef *p_framebuf, DevicePara_TypDef *p_fashionpara);
+
 uint8_t Encrypt_Convert(uint8_t *p_source, uint8_t len, uint8_t Convert_Mode);
 void Retransmission_Process(HKFrame_TypDef *p_framebuf);
 
