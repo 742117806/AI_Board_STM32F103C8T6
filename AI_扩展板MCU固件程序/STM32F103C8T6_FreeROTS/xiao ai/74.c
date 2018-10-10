@@ -209,5 +209,57 @@ static uint8_t decode74(uint8_t InData)
 */
 
 
+/****************************************************************
+**函数功能：进行74编码一组数据
+**参   数：
+        @src 要进行编码的源数据指针
+        @len 源数据的长度（字节数）
+        @des 编码后的数据
+**返回值:编码后的数据长度
+****************************************************************/
+uint8_t _74CodeBytes(uint8_t *src,uint8_t *des,uint8_t len)
+{
+	uint8_t i = 0;
+
+	uint16_t out_data;	//编码后的数据
+    uint8_t out_len = 0;
+    
+    for(i=0;i<len;i++)
+    {
+        out_data = code16_74bit(src[i]);
+		des[i*2] = out_data>>8;
+		des[i*2+1] = out_data&0Xff; 
+    }
+    out_len = len*2;
+    return out_len;
+}
+
+/****************************************************************
+**功   能：进行74解码一组数据
+**参   数：
+        @src 要进行解码的源数据指针
+        @len 源数据的长度（字节数）
+        @des 解码后的数据
+**返回值:解码后的数据长度
+****************************************************************/
+uint8_t _74DecodeBytes(uint8_t *src,uint8_t *des,uint8_t len)
+{
+	uint8_t i = 0;
+
+	uint16_t in_data;
+    uint8_t out_len = 0;
+    
+    for(i=0;i<len;i++)
+    {
+	    in_data = (src[i*2]<<8)&0xff00;
+		in_data |= src[i*2+1];
+		des[i] = decode16_74bit(in_data);
+    }
+    out_len = len/2;
+    return out_len;
+}
+
+
+
 
 

@@ -1,6 +1,7 @@
 #ifndef __FRAMETYPE_H
 #define __FRAMETYPE_H
 #include "stm32f1xx.h"
+#include "deviceInfo.h"
 
 
 //和通信帧相关的定义
@@ -67,18 +68,15 @@ typedef struct JOINE_NET_CMD_
 	
 }JOINE_NET_CMD_t;
 
-
-
-/*
-设备信息
-*/
-typedef struct DeviceInfo_
+//安卓板下发通信密钥和群组地址的数据结构
+typedef struct WRITE_AES_CMD_
 {
-	uint8_t mac[8];			//设备MAC地址
-	uint8_t aes[16];		//密钥
-	uint8_t addr_DA;		//逻辑地址
+	uint8_t aes[16];		//用在rsa函数来得出一个aes加密或解密的密钥
 	uint8_t addr_GA[3];		//群众地址
-}DeviceInfo_t;
+
+}WRITE_AES_CMD_t;
+
+
 
 typedef enum LedCmdType_
 {

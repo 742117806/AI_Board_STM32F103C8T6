@@ -11,7 +11,25 @@
 
 
 #define MAC_Data_Len    8       //设备的MAC长度，单位字节
-#define EEPROM_MAC_ADDR			(STM32_FLASH_END-1024)	//保存设备信息的首地址 ,在最后1K
+#define DEVICE_INFO_BASH_ADDR			(STM32_FLASH_END-2048)	//保存设备信息的首地址 ,在最后1K
+
+/*
+设备信息
+*/
+typedef struct DeviceInfo_
+{
+	uint8_t mac_exist;		//标识设备MAC是否已经烧录
+	uint8_t mac[8];			//设备MAC地址
+	uint8_t aes[16];		//密钥
+	uint8_t addr_DA;		//逻辑地址
+	uint8_t addr_GA[3];		//群众地址
+}DeviceInfo_t;
+
+
+extern  DeviceInfo_t  deviceInfo;		
+
+
+
 
 #endif
 

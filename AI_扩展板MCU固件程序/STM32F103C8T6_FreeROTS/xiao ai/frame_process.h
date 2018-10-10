@@ -189,8 +189,9 @@ uint8_t Encrypt_Convert(uint8_t *p_source, uint8_t len, uint8_t Convert_Mode);
 void Retransmission_Process(HKFrame_TypDef *p_framebuf);
 
 void Rsa_Decode(uint8_t *p_minw);
-
-
+void RemoteDown_EventFrame_Process(uint8_t *p_source, uint8_t len, HKFrame_TypDef *p_framebuf);
+void RemoteDown_CmdFrame_Process(uint8_t *p_source, uint8_t len);
+void FrameData_74Convert(FRAME_CMD_t *srcData,uint8_t srcLen,uint8_t *outLen,uint8_t mode);
 
 
 

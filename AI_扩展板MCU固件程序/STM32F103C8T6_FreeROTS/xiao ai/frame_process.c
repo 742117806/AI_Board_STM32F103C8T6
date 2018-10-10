@@ -198,6 +198,44 @@ uint8_t Frame_Compose(uint8_t *p) //给上位机的帧进行校验
     return ComposeFrame_Len;
 }
 
+/****************************************************************
+**功   能：按照应用协议进行74编码(从一帧数据的用户数据区开始到帧结束符前面的数据)
+**参   数：
+        @srcData 源数据
+        @srcLen 源数据的长度（字节数）
+		@outLen	编码后一帧数据的长度
+        @mode 1编码，0解码
+**返回值:无
+****************************************************************/
+void FrameData_74Convert(FRAME_CMD_t *srcData,uint8_t srcLen,uint8_t *outLen,uint8_t mode)
+{
+	uint8_t frame_len;
+	uint8_t temp[256]={0};
+	uint16_t crc16;
+	uint8_t *p_frame_data;
+	
+	if(mode==0)	//解码
+	{
+       	frame_len = _74DecodeBytes((uint8_t*)&srcData->userData,temp,srcLen-11);       //把编码过后加的CRC16(2个字节)去掉
+	    temp[frame_len] = HKFreamEnd;
+		memcpy((uint8_t*)&srcData->userData,temp,frame_len+1);
+		*outLen = frame_len+9;		
+	}
+	else        //编码
+	{
+		frame_len = _74CodeBytes((uint8_t*)&srcData->userData,temp,srcLen-9);    //74编码
+		
+		memcpy((uint8_t*)&srcData->userData,temp,frame_len);					//把编码好的数据复制回原来数据的缓存区，
+		crc16 = CRC16_2((uint8_t*)srcData,frame_len+8);			//编码后长度+协议帧前面没编码的8个字节帧数据
+		p_frame_data =  (uint8_t*)&srcData->userData;
+		p_frame_data[frame_len]= (crc16 >> 8);
+		p_frame_data[frame_len+1]= (crc16 & 0x00ff);
+		p_frame_data[frame_len+2] = HKFreamEnd;				                            //编码后加上帧结束0x53
+		*outLen = frame_len+8+3;
+	}
+}
+
+
 void Retry_Start(HKFrame_TypDef *p_framebuf, uint8_t *p_source, uint8_t source_len)
 {
     uint8_t i;
@@ -343,64 +381,28 @@ void Led_Control_Process(uint8_t led_setval, DevicePara_TypDef *p_device)
 }
 #endif
 
-//返回0表示解出来的AES符合格式，返回非1表示解出来的AES不符合格式,返回2表示AES已存在
-uint8_t SecretKey_Process(uint8_t *p)
+//解出AES
+uint8_t SecretKey_Process(DeviceInfo_t *p_deviceInfo)
 {
-    uint8_t res_val = 0;
-	uint8_t temp[4]={0};
-                        
-    //if(memcmp(p, &aes_out[RsaByte_Size*2], 19) != 0)
-    //if(!Secret_KeyOk_Flag)   //密钥一旦ok，不再接受其它密文
-    if (1)
-    {
-        Eeprom_Read(KEY_StartAddr, (uint16_t *)aes_out, AesBuf_Size / 2); //读出私钥到RAM
+		
+	memcpy(&aes_out[2*RsaByte_Size],p_deviceInfo->aes,16);
+	memcpy(&aes_out[3*RsaByte_Size],p_deviceInfo->addr_GA,3);
 
-        memmove(&aes_out[RsaByte_Size * 2], p, RsaByte_Size + 3); //移入密文和群组地址到RAM备用
-        aes_out[AesBuf_Size - 1] = Secret_Key_Yes;
+	Rsa_Decode(aes_out);
 
-#if (0) //需要保存,群组地址的密文需保持一致
-        Eeprom_ErasePage(KEY_StartAddr);
-        Eeprom_Write(KEY_StartAddr, (uint16_t *)aes_out, AesBuf_Size / 2);
-#endif
-        Rsa_Decode(aes_out);
-#if (0)
-        if (Secret_KeyOk_Flag != 1)
-        {
-            aes_w = (uint8_t *)malloc(Nb * (Nr + 1) * 4);
-        }
-#endif
+	memcpy(LANGroup_Addr, deviceInfo.addr_GA, 3); //移入群组地址到群组地址BUF
+	key_expansion(aes_out, aes_w);
 
-        if ((aes_out[3] != p[RsaByte_Size + 0]) || (aes_out[7] != p[RsaByte_Size + 1]) || (aes_out[11] != p[RsaByte_Size + 2])) //核对错误
-        {
-            //Secret_KeyOk_Flag = 0;
-            res_val = 1;
-        }
-        else
-        {
-            memmove(LANGroup_Addr, &aes_out[RsaByte_Size * 3], 3); //移入群组地址到群组地址BUF
-            key_expansion(aes_out, aes_w);
+	Secret_KeyOk_Flag = 1;
 
-            Eeprom_ErasePage(KEY_StartAddr);
-            Eeprom_Write(KEY_StartAddr, (uint16_t *)aes_out, AesBuf_Size / 2);
-			memcpy(temp,LANGroup_Addr,3);					//把家庭组地址复制到一个4个字节的数组，位了保存时候字节对齐
-            Eeprom_Write(GD_ADDR,(uint16_t*)temp,4/2);      //保存家庭组地址到MCU Flash
-            Secret_KeyOk_Flag = 1;
-            res_val = 0;
 
-            Get_WireLessChannel(Wireless_Channel);
+	Get_WireLessChannel(Wireless_Channel);
 #ifdef Use_Rx_Hop
-            Wireless_Init(); //Initial Wireless，开始初始化无线
+	Wireless_Init(); //Initial Wireless，开始初始化无线
 #endif
-            //WIRELESS_STATUS = Wireless_Free;
-            Si4438_Receive_Start(Wireless_Channel[0]); //Start Receive
-        }
-    }
-    else
-    {
-        res_val = 2;
-    }
+	Si4438_Receive_Start(Wireless_Channel[0]); //Start Receive
 
-    return res_val;
+    return 0;
 }
 
 uint8_t MACRead_Process(uint8_t *p_buf)
@@ -427,51 +429,36 @@ void Local_CmdFrame_Process(uint8_t *p_source, HKFrame_TypDef *p_framebuf, Devic
     if (memcmp(&p_source[Region_DataIDNumber], Led_Control_ID, 3) == 0)
     {
         //Led_Control_Process(p_source[Region_DataValNumber], p_device);
-        p[Region_DataLenNumber] = 0;
-        reply_flag = 1;
+        //p[Region_DataLenNumber] = 0;
+        //reply_flag = 1;
     }
 
     else if (memcmp(&p_source[Region_DataIDNumber], SecretKey_ID, 3) == 0)
     { //获得密文后重新初始化了无线
-        ask = SecretKey_Process(&p_source[Region_DataValNumber]);
+//			ask = SecretKey_Process(&p_source[Region_DataValNumber]);
 
-        if (ask == 0)
-        {
-            p[Region_DataLenNumber] = 0;
-        }
-        else if (ask == 1)
-        {
-            p_source[Region_CmdNumber] |= 0x40;
-            p[Region_DataLenNumber] = 1;
-            p[Region_DataAFNNumber] = Format_Error;
-        }
-        else
-        {
-            p_source[Region_CmdNumber] |= 0x40;
-            p[Region_DataLenNumber] = 1;
-            p[Region_DataAFNNumber] = FrameFunction_Exist;
-        }
-        reply_flag = 1;
+//        if (ask == 0)
+//        {
+//            p[Region_DataLenNumber] = 0;
+//        }
+//        else if (ask == 1)
+//        {
+//            p_source[Region_CmdNumber] |= 0x40;
+//            p[Region_DataLenNumber] = 1;
+//            p[Region_DataAFNNumber] = Format_Error;
+//        }
+//        else
+//        {
+//            p_source[Region_CmdNumber] |= 0x40;
+//            p[Region_DataLenNumber] = 1;
+//            p[Region_DataAFNNumber] = FrameFunction_Exist;
+//        }
+//        reply_flag = 1;
     }
 
-#ifdef Use_RSA_Debug
-    else if (memcmp(&p_source[Region_DataIDNumber], SecretTest_ID, 3) == 0)
-    {
-        Eeprom_Read(KEY_StartAddr, (uint16_t *)aes_out, AesBuf_Size / 2);                   //读出私钥到RAM
-        memmove(&aes_out[RsaByte_Size * 2], &p_source[Region_DataValNumber], RsaByte_Size); //移入密文和群组地址到RAM
-        Rsa_Decode(aes_out);
-        p[Region_DataLenNumber] = RsaByte_Size + 4;
-        memmove(&p[Region_DataAFNNumber], &p_source[Region_DataAFNNumber], 4);
-        memmove(&p[Region_DataValNumber], aes_out, RsaByte_Size);
-        reply_flag = 1;
-    }
-#endif
 
     else if (memcmp(&p_source[Region_DataIDNumber], Provide_LogicAddrTab_Id, 3) == 0)
     {
-#ifdef Use_Rout
-        Receive_LogicAddrTab_Process(p_source, &Rout_TryBuf);
-#endif
         p[Region_DataLenNumber] = 0;
         reply_flag = 1;
     }
@@ -565,7 +552,8 @@ void RemoteUp_CmdFrame_Process(uint8_t *p_source, uint8_t len, uint8_t *p_buf)
 
     if (memcmp(&p_source[Region_DataIDNumber], Set_LogicAddr_Id, 3) == 0) //如为组网帧
     {
-        if ((memcmp(&p_source[Region_AddrNumber + 1], LANGroup_Addr, 3) != 0) || (memcmp(&p_source[Region_DataValNumber + MAC_Data_Len], &aes_out[RsaByte_Size * 2], RsaByte_Size) != 0)) //如群组地址或密文不一样
+        if ((memcmp(&p_source[Region_AddrNumber + 1], LANGroup_Addr, 3) != 0) || 
+		(memcmp(&p_source[Region_DataValNumber + MAC_Data_Len], &aes_out[RsaByte_Size * 2], RsaByte_Size) != 0)) //如群组地址或密文不一样
         {
             frame_cmd |= 0x40;
             p_buf[Region_DataLenNumber] = 1;
@@ -613,18 +601,6 @@ void RemoteUp_CmdFrame_Process(uint8_t *p_source, uint8_t len, uint8_t *p_buf)
             send_len = len;
         }
 
-#ifdef Use_Rout
-        memmove(RoutFrame_buf, p_source, send_len);
-        RoutPath_Read(p_source[Region_AddrNumber]);
-        Rout_TempTab.Current_Path_Number = 0;
-        Rout_TryBuf.Distance_Addr = p_source[Region_AddrNumber];
-        RoutRegion[2] = Rout_TryBuf.Distance_Addr;
-        Rout_TryBuf.Frame_Len = send_len;
-        Dis_TryFlag = 0;
-        //Try_Cnt = 0;
-        //Frame_WaitOver_Time = 75;
-        Frame_Wait_Cnt = 1;
-#endif
 
         if (memcmp(&p_source[Region_DataIDNumber], Set_LogicAddr_Id, 3) == 0) //组网帧用了默认频道
         {
@@ -790,29 +766,29 @@ void Frame_Process(uint8_t *p_source, uint8_t len, HKFrame_TypDef *p_framebuf, D
 
     switch (frame_type)
     {
-    case Local_CmdFrame:
-        Local_CmdFrame_Process(p_source, p_framebuf, p_device);
-        break;
+//    case Local_CmdFrame:
+//        Local_CmdFrame_Process(p_source, p_framebuf, p_device);
+//        break;
 
-    case Local_EventFrame:
-        Clear_EventFrame_Process(p_source, p_framebuf);
-        break;
+//    case Local_EventFrame:
+//        Clear_EventFrame_Process(p_source, p_framebuf);
+//        break;
 
-    case RemoteUp_CmdFrame:
-        RemoteUp_CmdFrame_Process(p_source, len, p_framebuf->FrameProcess_Buf);
-        break;
+//    case RemoteUp_CmdFrame:
+//        RemoteUp_CmdFrame_Process(p_source, len, p_framebuf->FrameProcess_Buf);
+//        break;
 
-    case RemoteUp_EventFrame: //主机要求不重发了，清标志
-        Clear_EventFrame_Process(p_source, p_framebuf);
-        break;
+//    case RemoteUp_EventFrame: //主机要求不重发了，清标志
+//        Clear_EventFrame_Process(p_source, p_framebuf);
+//        break;
 
-    case RemoteDown_CmdFrame:
-        RemoteDown_CmdFrame_Process(p_source, len);
-        break;
+//    case RemoteDown_CmdFrame:
+//        RemoteDown_CmdFrame_Process(p_source, len);
+//        break;
 
-    case RemoteDown_EventFrame:
-        RemoteDown_EventFrame_Process(p_source, len, p_framebuf);
-        break;
+//    case RemoteDown_EventFrame:
+//        RemoteDown_EventFrame_Process(p_source, len, p_framebuf);
+//        break;
 
     default:
         break;
