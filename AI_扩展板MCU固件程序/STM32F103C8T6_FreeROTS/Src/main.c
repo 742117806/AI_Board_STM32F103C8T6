@@ -131,31 +131,10 @@ void Get_WireLessChannel(uint8_t *wire_chnel)
 }
 #endif
 
-//扩展板版本号应答                                     
-void FrameCmdVersionAck(FRAME_CMD_t *frameCmd)
-{
-	FRAME_CMD_t frameAck;
-	uint8_t frameLen;
-	
 
-	memcpy((uint8_t*)&frameAck, (uint8_t*)frameCmd, 16);
-	frameAck.addr_DA = 0xFF;
-	frameAck.addr_GA[0] = 0xFF;
-	frameAck.addr_GA[1] = 0xFF;
-	frameAck.addr_GA[2] = 0xFF;
-	frameAck.Ctrl.dir = 1;	
-	frameAck.DataLen = 6;
-	frameAck.userData.content[0]= Version_Number >> 8;
-	frameAck.userData.content[1]= Version_Number & 0xff;
-	
-	frameLen = Frame_Compose((uint8_t *)&frameAck);
-	vTaskSuspendAll(); //开启任务调度锁
-    UartSendBytes(USART1, (uint8_t *)&frameAck, frameLen);
-    xTaskResumeAll(); //关闭任务调度锁
-}
 
 //扩展板自身应答给安卓板
-void FrameCmdLocalAck(FRAME_CMD_t *frameCmd)
+void FrameCmdLocalAck(FRAME_CMD_t *frameCmd,uint8_t* ack_content,uint8_t content_len)
 {
     FRAME_CMD_t frameAck;
 	uint8_t frameLen;
@@ -165,8 +144,18 @@ void FrameCmdLocalAck(FRAME_CMD_t *frameCmd)
 	frameAck.addr_GA[0] = 0xFF;
 	frameAck.addr_GA[1] = 0xFF;
 	frameAck.addr_GA[2] = 0xFF;
-	frameAck.Ctrl.dir = 1;	
-	frameAck.DataLen = 0;
+	frameAck.Ctrl.dir = 1;
+	if(content_len > 0)
+	{
+		frameAck.DataLen = content_len+4;
+		memcpy(frameAck.userData.content,ack_content,content_len);
+	}
+	else
+	{
+		frameAck.DataLen = 0;
+	}
+	
+	
 	
 	frameLen = Frame_Compose((uint8_t *)&frameAck);
 	vTaskSuspendAll(); //开启任务调度锁
@@ -185,6 +174,7 @@ void Local_CmdProcess(FRAME_CMD_t *frameCmd)
     uint8_t indexType = frameCmd->userData.Index[0];
     uint16_t indexCmd = (frameCmd->userData.Index[1] << 8) + frameCmd->userData.Index[2];
 	WRITE_AES_CMD_t *p_write_cmd = (WRITE_AES_CMD_t*)frameCmd->userData.content;
+	uint8_t temp[10]={0};
 
     switch (indexType)
     {
@@ -192,31 +182,34 @@ void Local_CmdProcess(FRAME_CMD_t *frameCmd)
         switch (indexCmd)
         {
 		case 0x0001:		//读软件版本号
-			FrameCmdVersionAck(frameCmd);			
+			temp[0]= Version_Number >> 8;
+			temp[1]= Version_Number & 0xff;
+			FrameCmdLocalAck(frameCmd,temp,2);				
 		break;
         case 0xFF00:		//写群组地址和密钥
 			memcpy(deviceInfo.addr_GA,p_write_cmd->addr_GA,3);
 			memcpy(deviceInfo.aes,p_write_cmd->aes,16);
 			STMFLASH_Write(DEVICE_INFO_BASH_ADDR,(uint16_t*)&deviceInfo,(sizeof(deviceInfo)+1)/2);		//+1和/2是为了2字节对齐
 			SecretKey_Process(&deviceInfo);          //计算出密文，存放在aes_w，供加解密用
-            FrameCmdLocalAck(frameCmd);	
+            FrameCmdLocalAck(frameCmd,0,0);	
             break;
 		default:
-			FrameCmdLocalAck(frameCmd);
+			FrameCmdLocalAck(frameCmd,0,0);
 			break;
         }
         break;
     case 0x00:
+
         break;
     case 0x01:
         switch (indexCmd)
         {
         case 0x0021:
             xTaskNotify(LedTaskHandle, frameCmd->userData.content[0], eSetValueWithOverwrite);
-            FrameCmdLocalAck(frameCmd);
+            FrameCmdLocalAck(frameCmd,0,0);
             break;
 		default:
-			FrameCmdLocalAck(frameCmd);
+			FrameCmdLocalAck(frameCmd,0,0);
 			break;
 		
         }
@@ -228,7 +221,7 @@ void Local_CmdProcess(FRAME_CMD_t *frameCmd)
     case 0x04:
         break;
     default:
-		FrameCmdLocalAck(frameCmd);
+		FrameCmdLocalAck(frameCmd,0,0);
         break;
     }
 }
@@ -266,7 +259,7 @@ void UartRx_Process(UpCom_Rx_TypDef *prx_ubuf, DevicePara_TypDef *p_device)
 					{
 						if(frameCmd->Ctrl.eventFlag == 0) //命令
 						{
-							FrameCmdLocalAck(frameCmd);
+							FrameCmdLocalAck(frameCmd,0,0);
 							if(frameCmd->FSQ.encryptType)  //加密
 							{
 								send_len = Encrypt_Convert((uint8_t*)frameCmd, frameCmd->DataLen+11, 0); 
@@ -298,6 +291,69 @@ void UartRx_Process(UpCom_Rx_TypDef *prx_ubuf, DevicePara_TypDef *p_device)
         prx_ubuf->Rx_Status = UartRx_FrameHead;
     }
 }
+
+//uint8_t frameTest[256]={
+//0x69,0x69,0x39,0xC6,0x00,0x29,0x02,0x04,0x02,0x00,0x01,0x00,0x01,0x24,
+//0x01,0x30,0x0F,0x00,0xAC,0x24,0x00,0x29,0x02,0x06,0x10,0x1C,0x80,0xFF,
+//0xFF,0xFF,0x04,0x02,0x00,0x01,0x00,0x01,0x24,0x01,0x57,0xDB,0xF8,0xCF,
+//0x2D,0xD2,0x00,0x79,0x8F,0x97,0x70,0x70,0x2A,0x1A,0x8F,0xCB,0x09,0xBF,
+//0x53,0xD9,0x06,0x96,0x96};
+//uint8_t frameTest[256]={
+//0x69,0x69,0x32,0xCD,0x01,0x29,0x02,0x24,0x30,0x0F,0x00,0xAC,0x32,0x00,0x29,
+//0x02,0x06,0x10,0x1C,0x80,0xFF,0xFF,0xFF,0x04,0x02,0x00,0x01,0x00,0x00,0x32,
+//0x11,0x57,0xDB,0xF8,0xCF,0x2D,0xD2,0x00,0x79,0x8F,0x97,0x70,0x70,0x2A,0x1A,
+//0x8F,0xCB,0x09,0xBF,0x53,0xCE,0x0F,0x96,0x96};
+uint8_t frameTest[256]={
+0x69,0x69,0x33,0xCC,0x01,0x29,0x02,0x24,0x30,0x1F,0x01,0x24,0xAC,0x32,0x00,
+0x29,0x02,0x06,0x10,0x1C,0x80,0xFF,0xFF,0xFF,0x04,0x02,0x00,0x01,0x00,0x00,
+0x32,0x11,0x57,0xDB,0xF8,0xCF,0x2D,0xD2,0x00,0x79,0x8F,0x97,0x70,0x70,0x2A,
+0x1A,0x8F,0xCB,0x09,0xBF,0x53,0x6D,0x1D,0x96,0x96};
+//路由协议帧数据处理，主要针对无线和电力线载波
+void FrameRouterDataProcess(uint8_t *rx_buff,uint8_t rx_len)
+{
+	
+	FRAME_ROUTER_CMD_t *frameData = (FRAME_ROUTER_CMD_t*)rx_buff;					//通信帧数据结构
+	FRAME_ROUTER_EXT_CMD_t* frameData_ext = (FRAME_ROUTER_EXT_CMD_t*)rx_buff;        //配网帧数据结构
+
+	uint8_t *routerTable;		//路由表指针
+	uint8_t *userFrame;         //应用命令帧指针
+	FRAME_CMD_t **frame_cmd;    //应用命令帧指针的指针
+	
+		
+	//判断帧头
+	if((frameData->head_h != 0x69)||(frameData->head_l != 0x69))
+	{
+		return;
+	} 
+	//FrameData_74Convert()
+	//判断长度是否正确
+	if((frameData->len+frameData->len_c)!=0xff)
+	{
+		return;
+	}
+
+	
+	if(frameData->ctrl.type == 1)	//通信帧
+	{
+		routerTable = &rx_buff[11];
+		userFrame = &rx_buff[11+frameData->router_len];
+		UartSendBytes(USART1,routerTable,frameData->router_len);
+
+	}
+	else if(frameData->ctrl.type == 0) //组网帧
+	{
+
+		routerTable = &rx_buff[18];
+		userFrame = &rx_buff[18+frameData_ext->router_len];
+		UartSendBytes(USART1,routerTable,frameData_ext->router_len);
+
+	}
+	delay_ms(1000);
+	frame_cmd = (FRAME_CMD_t**)&userFrame;
+	UartSendBytes(USART1,(uint8_t*)*frame_cmd,(*frame_cmd)->DataLen+11);
+	
+}
+
 
 
 extern osThreadId UartTaskHandle;
@@ -583,6 +639,7 @@ int main(void)
     Wireless_Init();
     Si4438_Receive_Start(Wireless_Channel[0]);
 
+	FrameRouterDataProcess(frameTest,14);
     /* USER CODE END 2 */
 
     /* USER CODE BEGIN RTOS_MUTEX */

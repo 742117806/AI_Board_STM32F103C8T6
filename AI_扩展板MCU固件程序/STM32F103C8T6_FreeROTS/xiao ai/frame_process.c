@@ -466,12 +466,12 @@ void Local_CmdFrame_Process(uint8_t *p_source, HKFrame_TypDef *p_framebuf, Devic
     else if (memcmp(&p_source[Region_DataIDNumber], GetVersion_ID, 3) == 0)
     {
         //GetVersion_Process(p_source, &Rout_TryBuf);
-        memmove(&p[Region_DataAFNNumber], &p_source[Region_DataAFNNumber], 4);
-        p[Region_DataValNumber] = Version_Number >> 8;
-        p[Region_DataValNumber + 1] = Version_Number & 0xff;
-        p[Region_DataLenNumber] = 6;
+//        memmove(&p[Region_DataAFNNumber], &p_source[Region_DataAFNNumber], 4);
+//        p[Region_DataValNumber] = Version_Number >> 8;
+//        p[Region_DataValNumber + 1] = Version_Number & 0xff;
+//        p[Region_DataLenNumber] = 6;
 
-        reply_flag = 1;
+//        reply_flag = 1;
     }
 
     else if (memcmp(&p_source[Region_DataIDNumber], TimeCalib_ID, 3) == 0)
