@@ -95,6 +95,10 @@ void StartDefaultTask(void const *argument);
 /* USER CODE BEGIN 0 */
 uint8_t uart1_rec;
 uint8_t uart2_rec;
+extern osThreadId LedTaskHandle;
+extern void MacFrame_Process(uint8_t *p_source, uint8_t *p_buf);
+extern uint8_t SecretKey_Process(DeviceInfo_t *p_deviceInfo);
+extern osThreadId UartTaskHandle;
 
 //根据家庭组切换到新的固定通讯频道上
 #ifdef Use_Rx_Hop
@@ -162,10 +166,171 @@ void FrameCmdLocalAck(FRAME_CMD_t *frameCmd,uint8_t* ack_content,uint8_t content
     UartSendBytes(USART1, (uint8_t *)&frameAck, frameLen);
     xTaskResumeAll(); //关闭任务调度锁
 }
+//判断是否符合帧协议
+//返回1正确，0错误
+uint8_t FrameRouterDetect(uint8_t *rx_buff)
+{
+	FRAME_ROUTER_CMD_t *frameData = (FRAME_ROUTER_CMD_t*)rx_buff;					//通信帧数据结构
+	FRAME_ROUTER_EXT_CMD_t* frameData_ext = (FRAME_ROUTER_EXT_CMD_t*)rx_buff;        //配网帧数据结构
+	//判断帧头
+	if((frameData->head_h != 0x69)||(frameData->head_l != 0x69))
+	{
+		return 0;
+	} 
+	//FrameData_74Convert()
+	//判断长度是否正确
+	if((frameData->len+frameData->len_c)!=0xff)
+	{
+		return 0;
+	}
+	return 1;
+}
 
-extern osThreadId LedTaskHandle;
-extern void MacFrame_Process(uint8_t *p_source, uint8_t *p_buf);
-extern uint8_t SecretKey_Process(DeviceInfo_t *p_deviceInfo);
+//uint8_t frameTest[256]={
+//0x69,0x69,0x39,0xC6,0x00,0x29,0x02,0x04,0x02,0x00,0x01,0x00,0x01,0x24,
+//0x01,0x30,0x0F,0x00,0xAC,0x24,0x00,0x29,0x02,0x06,0x10,0x1C,0x80,0xFF,
+//0xFF,0xFF,0x04,0x02,0x00,0x01,0x00,0x01,0x24,0x01,0x57,0xDB,0xF8,0xCF,
+//0x2D,0xD2,0x00,0x79,0x8F,0x97,0x70,0x70,0x2A,0x1A,0x8F,0xCB,0x09,0xBF,
+//0x53,0xD9,0x06,0x96,0x96};
+//uint8_t frameTest[256]={
+//0x69,0x69,0x32,0xCD,0x01,0x29,0x02,0x24,0x30,0x0F,0x00,0xAC,0x32,0x00,0x29,
+//0x02,0x06,0x10,0x1C,0x80,0xFF,0xFF,0xFF,0x04,0x02,0x00,0x01,0x00,0x00,0x32,
+//0x11,0x57,0xDB,0xF8,0xCF,0x2D,0xD2,0x00,0x79,0x8F,0x97,0x70,0x70,0x2A,0x1A,
+//0x8F,0xCB,0x09,0xBF,0x53,0xCE,0x0F,0x96,0x96};
+uint8_t frameTest[256]={
+0x69,0x69,0x33,0xCC,0x01,0x29,0x02,0x24,0x30,0x1F,0x01,0x24,0xAC,0x32,0x00,
+0x29,0x02,0x06,0x10,0x1C,0x80,0xFF,0xFF,0xFF,0x04,0x02,0x00,0x01,0x00,0x00,
+0x32,0x11,0x57,0xDB,0xF8,0xCF,0x2D,0xD2,0x00,0x79,0x8F,0x97,0x70,0x70,0x2A,
+0x1A,0x8F,0xCB,0x09,0xBF,0x53,0x6D,0x1D,0x96,0x96};
+//路由协议帧数据处理，主要针对无线和电力线载波
+void FrameRouterDataProcess(uint8_t *rx_buff,uint8_t rx_len)
+{
+	
+	FRAME_ROUTER_CMD_t *frameData = (FRAME_ROUTER_CMD_t*)rx_buff;					//通信帧数据结构
+	FRAME_ROUTER_EXT_CMD_t* frameData_ext = (FRAME_ROUTER_EXT_CMD_t*)rx_buff;        //配网帧数据结构
+
+	uint8_t *routerTable;		//路由表指针
+	uint8_t *userFrame;         //应用命令帧指针
+	//FRAME_CMD_t **frame_cmd;    //应用命令帧指针的指针
+	uint8_t frame_type;
+	uint8_t temp[256];
+	
+
+	if(FrameRouterDetect(rx_buff)==1)
+	{
+		if(frameData->des_addr == 30)		//属于字节的协议帧
+		{
+//			if(frameData->ctrl.type == 1)	//通信帧
+//			{
+				routerTable = &rx_buff[11];
+				userFrame = &rx_buff[11+frameData->router_len];
+//				UartSendBytes(USART1,routerTable,frameData->router_len);
+
+//			}
+//			else if(frameData->ctrl.type == 0) //组网帧
+//			{
+
+//				routerTable = &rx_buff[18];
+//				userFrame = &rx_buff[18+frameData_ext->router_len];
+//			}
+	//		delay_ms(1000);
+	//		frame_cmd = (FRAME_CMD_t**)&userFrame;
+	//		UartSendBytes(USART1,(uint8_t*)*frame_cmd,(*frame_cmd)->DataLen+11);
+			
+			frame_type = userFrame[Region_CmdNumber] & 0x98;
+			//memcpy(temp,userFrame,rx_len-15-frameData->router_len);
+			Wireless_Buf.Wireless_PacketLength = rx_len-15-frameData->router_len;
+            memcpy(rx_buff,userFrame,Wireless_Buf.Wireless_PacketLength);
+			
+			if (frame_type == RemoteDown_CmdFrame)
+			{
+				xTaskNotify(UartTaskHandle,0x10<<8, eSetValueWithOverwrite);
+			}
+			else if (frame_type == RemoteDown_EventFrame)
+			{
+				xTaskNotify(UartTaskHandle, 0x20<<8, eSetValueWithOverwrite);
+			}
+			else
+			{
+				Si4438_Receive_Start(Wireless_Channel[0]);
+			}
+		}
+	}
+	
+}
+
+//打包一帧应用数据成为路由帧
+uint8_t test2[100]={0xAC,0x32,0x00,
+0x29,0x02,0x06,0x10,0x1C,0x80,0xFF,0xFF,0xFF,0x04,0x02,0x00,0x01,0x00,0x00,
+0x32,0x11,0x57,0xDB,0xF8,0xCF,0x2D,0xD2,0x00,0x79,0x8F,0x97,0x70,0x70,0x2A,
+0x1A,0x8F,0xCB,0x09,0xBF,0x53};
+uint8_t FrameRouterCompose(uint8_t desAddr,uint8_t *srcData,uint8_t srcLen)
+{
+    uint8_t temp[256] = {0};
+	FRAME_ROUTER_CMD_t *p = (FRAME_ROUTER_CMD_t*)temp;
+	uint8_t routerLen = 0;		//路由表长度（字节）
+	uint16_t crc_16;
+	
+	p->head_h = 0x69;
+	p->head_l = 0x69;
+	
+	p->len = srcLen + routerLen + 11;
+	p->len_c = ~(p->len);
+	p->ctrl.mode = 0;
+	p->ctrl.type = 1;	
+	p->netNum[0] = deviceInfo.addr_GA[1];
+	p->netNum[1] = deviceInfo.addr_GA[2];
+	p->des_addr = desAddr;
+	p->src_addr = 30; //扩展板的地址
+	p->routerNum.index = 0;
+	p->routerNum.type = 0xF;
+	p->router_len = 0;
+	memcpy(&temp[11+p->router_len],srcData,srcLen);
+	crc_16 = CRC16_2(temp,p->len);
+	temp[p->len] = crc_16>>8;
+	temp[p->len+1] = crc_16 & 0x00ff;
+	temp[p->len+2] = 0x96;
+	temp[p->len+3] = 0x96;
+	memcpy(srcData,temp,p->len+4);
+	return p->len+4;
+}
+
+//针对配网
+uint8_t FrameRouterCompose_ext(uint8_t *des_mac_Addr,uint8_t *srcData,uint8_t srcLen)
+{
+    uint8_t temp[256] = {0};
+	FRAME_ROUTER_EXT_CMD_t *p = (FRAME_ROUTER_EXT_CMD_t*)temp;
+	uint8_t routerLen = 0;		//路由表长度（字节）
+	uint16_t crc_16;
+	
+	p->head_h = 0x69;
+	p->head_l = 0x69;
+	
+	p->len = srcLen + routerLen + 18;
+	p->len_c = ~(p->len);
+	p->ctrl.mode = 0;
+	p->ctrl.type = 0;	
+	p->netNum[0] = deviceInfo.addr_GA[1];
+	p->netNum[1] = deviceInfo.addr_GA[2];
+	memcpy(p->des_addr,des_mac_Addr,8);
+	p->src_addr = 30; //扩展板的地址
+	p->routerNum.index = 0;
+	p->routerNum.type = 0xF;
+	p->router_len = 0;
+	memcpy(&temp[18+p->router_len],srcData,srcLen);
+	crc_16 = CRC16_2(temp,p->len);
+	temp[p->len] = crc_16>>8;
+	temp[p->len+1] = crc_16 & 0x00ff;
+	temp[p->len+2] = 0x96;
+	temp[p->len+3] = 0x96;
+	memcpy(srcData,temp,p->len+4);
+	return p->len+4;
+}
+
+
+
+
+
 
 //本地命令处理
 void Local_CmdProcess(FRAME_CMD_t *frameCmd)
@@ -268,7 +433,21 @@ void UartRx_Process(UpCom_Rx_TypDef *prx_ubuf, DevicePara_TypDef *p_device)
 							{
 								send_len = frameCmd->DataLen+11;
 							}
-							Si4438_Transmit_Start(&Wireless_Buf, Default_Channel, (uint8_t*)frameCmd, send_len);       //串口数据无线转发
+							prx_ubuf->FrameTotalLen =  send_len;
+							JOINE_NET_CMD_t *joine_cmd = (JOINE_NET_CMD_t*)frameCmd->userData.content;
+							if((frameCmd->userData.Index[0] == 0xff)&&
+							(frameCmd->userData.Index[1] == 0xff)&&
+							(frameCmd->userData.Index[2] == 0xff))
+							{
+								send_len = FrameRouterCompose_ext(joine_cmd->mac,prx_ubuf->Frame_Data,prx_ubuf->FrameTotalLen);
+								Si4438_Transmit_Start(&Wireless_Buf, Default_Channel, (uint8_t*)frameCmd, send_len);       //串口数据无线转发
+							}
+							else
+							{
+							   send_len = FrameRouterCompose(frameCmd->addr_DA,prx_ubuf->Frame_Data,prx_ubuf->FrameTotalLen);
+							   Si4438_Transmit_Start(&Wireless_Buf,  Wireless_Channel[0], (uint8_t*)frameCmd, send_len);       //串口数据无线转发
+							}
+							
 						}
 						else  if(frameCmd->Ctrl.eventFlag == 1)		//事件(应答)
 						{
@@ -292,77 +471,16 @@ void UartRx_Process(UpCom_Rx_TypDef *prx_ubuf, DevicePara_TypDef *p_device)
     }
 }
 
-//uint8_t frameTest[256]={
-//0x69,0x69,0x39,0xC6,0x00,0x29,0x02,0x04,0x02,0x00,0x01,0x00,0x01,0x24,
-//0x01,0x30,0x0F,0x00,0xAC,0x24,0x00,0x29,0x02,0x06,0x10,0x1C,0x80,0xFF,
-//0xFF,0xFF,0x04,0x02,0x00,0x01,0x00,0x01,0x24,0x01,0x57,0xDB,0xF8,0xCF,
-//0x2D,0xD2,0x00,0x79,0x8F,0x97,0x70,0x70,0x2A,0x1A,0x8F,0xCB,0x09,0xBF,
-//0x53,0xD9,0x06,0x96,0x96};
-//uint8_t frameTest[256]={
-//0x69,0x69,0x32,0xCD,0x01,0x29,0x02,0x24,0x30,0x0F,0x00,0xAC,0x32,0x00,0x29,
-//0x02,0x06,0x10,0x1C,0x80,0xFF,0xFF,0xFF,0x04,0x02,0x00,0x01,0x00,0x00,0x32,
-//0x11,0x57,0xDB,0xF8,0xCF,0x2D,0xD2,0x00,0x79,0x8F,0x97,0x70,0x70,0x2A,0x1A,
-//0x8F,0xCB,0x09,0xBF,0x53,0xCE,0x0F,0x96,0x96};
-uint8_t frameTest[256]={
-0x69,0x69,0x33,0xCC,0x01,0x29,0x02,0x24,0x30,0x1F,0x01,0x24,0xAC,0x32,0x00,
-0x29,0x02,0x06,0x10,0x1C,0x80,0xFF,0xFF,0xFF,0x04,0x02,0x00,0x01,0x00,0x00,
-0x32,0x11,0x57,0xDB,0xF8,0xCF,0x2D,0xD2,0x00,0x79,0x8F,0x97,0x70,0x70,0x2A,
-0x1A,0x8F,0xCB,0x09,0xBF,0x53,0x6D,0x1D,0x96,0x96};
-//路由协议帧数据处理，主要针对无线和电力线载波
-void FrameRouterDataProcess(uint8_t *rx_buff,uint8_t rx_len)
-{
-	
-	FRAME_ROUTER_CMD_t *frameData = (FRAME_ROUTER_CMD_t*)rx_buff;					//通信帧数据结构
-	FRAME_ROUTER_EXT_CMD_t* frameData_ext = (FRAME_ROUTER_EXT_CMD_t*)rx_buff;        //配网帧数据结构
-
-	uint8_t *routerTable;		//路由表指针
-	uint8_t *userFrame;         //应用命令帧指针
-	FRAME_CMD_t **frame_cmd;    //应用命令帧指针的指针
-	
-		
-	//判断帧头
-	if((frameData->head_h != 0x69)||(frameData->head_l != 0x69))
-	{
-		return;
-	} 
-	//FrameData_74Convert()
-	//判断长度是否正确
-	if((frameData->len+frameData->len_c)!=0xff)
-	{
-		return;
-	}
-
-	
-	if(frameData->ctrl.type == 1)	//通信帧
-	{
-		routerTable = &rx_buff[11];
-		userFrame = &rx_buff[11+frameData->router_len];
-		UartSendBytes(USART1,routerTable,frameData->router_len);
-
-	}
-	else if(frameData->ctrl.type == 0) //组网帧
-	{
-
-		routerTable = &rx_buff[18];
-		userFrame = &rx_buff[18+frameData_ext->router_len];
-		UartSendBytes(USART1,routerTable,frameData_ext->router_len);
-
-	}
-	delay_ms(1000);
-	frame_cmd = (FRAME_CMD_t**)&userFrame;
-	UartSendBytes(USART1,(uint8_t*)*frame_cmd,(*frame_cmd)->DataLen+11);
-	
-}
 
 
 
-extern osThreadId UartTaskHandle;
 
 void WireLess_Process(WLS *p_wl, DevicePara_TypDef *p_device)
 {
     static uint8_t Wireless_ErrCnt = 0;
 	uint8_t out_len;
 	uint8_t frame_type;
+	
 
     if (WIRELESS_STATUS == Wireless_RX_Finish) //Receive Finish
     {
@@ -378,26 +496,30 @@ void WireLess_Process(WLS *p_wl, DevicePara_TypDef *p_device)
 			p_wl->Wireless_PacketLength = out_len;
 		}
 		#endif
-			
-		//校验帧头和CRC16	
-        if (0 == FrameData_Detect(p_wl->Wireless_RxData, p_wl->Wireless_PacketLength))
-        {
-            frame_type = p_wl->Wireless_RxData[Region_CmdNumber] & 0x98;
-            p_device->Pending_Flag &= 0x0f;
+		if(FrameRouterDetect(p_wl->Wireless_RxData)==1)
+		{
+			FrameRouterDataProcess(p_wl->Wireless_RxData,p_wl->Wireless_PacketLength);	
+		}
+		//校验帧头和CRC16
+		
+//        if (0 == FrameData_Detect(p_wl->Wireless_RxData, p_wl->Wireless_PacketLength))
+//        {
+//            frame_type = p_wl->Wireless_RxData[Region_CmdNumber] & 0x98;
+//            p_device->Pending_Flag &= 0x0f;
 
-            if (frame_type == RemoteDown_CmdFrame)
-            {
-				xTaskNotify(UartTaskHandle,0x10<<8, eSetValueWithOverwrite);
-            }
-            else if (frame_type == RemoteDown_EventFrame)
-            {
-				xTaskNotify(UartTaskHandle, 0x20<<8, eSetValueWithOverwrite);
-            }
-            else
-			{
-                Si4438_Receive_Start(Wireless_Channel[0]);
-			}
-        }
+//            if (frame_type == RemoteDown_CmdFrame)
+//            {
+//				xTaskNotify(UartTaskHandle,0x10<<8, eSetValueWithOverwrite);
+//            }
+//            else if (frame_type == RemoteDown_EventFrame)
+//            {
+//				xTaskNotify(UartTaskHandle, 0x20<<8, eSetValueWithOverwrite);
+//            }
+//            else
+//			{
+//                Si4438_Receive_Start(Wireless_Channel[0]);
+//			}
+//        }
 		else
 		{
 			Si4438_Receive_Start(Wireless_Channel[0]);
@@ -597,7 +719,8 @@ int main(void)
 {
 
     /* USER CODE BEGIN 1 */
-
+    uint8_t len;
+	uint8_t mac[8]={0x03,0x00,0x01,0x02,0x03,0x04,0x05,0x06};
     /* USER CODE END 1 */
 
     /* MCU Configuration----------------------------------------------------------*/
@@ -639,7 +762,6 @@ int main(void)
     Wireless_Init();
     Si4438_Receive_Start(Wireless_Channel[0]);
 
-	FrameRouterDataProcess(frameTest,14);
     /* USER CODE END 2 */
 
     /* USER CODE BEGIN RTOS_MUTEX */

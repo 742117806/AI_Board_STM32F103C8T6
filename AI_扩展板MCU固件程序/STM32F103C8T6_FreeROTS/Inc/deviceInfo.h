@@ -7,7 +7,7 @@
 /*
 定义和设备相关的信息
 */
-#define Use_74dcode                     //带74编码功能
+//#define Use_74dcode                     //带74编码功能
 
 
 #define MAC_Data_Len    8       //设备的MAC长度，单位字节
