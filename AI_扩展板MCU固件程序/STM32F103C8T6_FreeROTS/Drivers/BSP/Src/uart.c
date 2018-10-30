@@ -1,6 +1,7 @@
 //实现与串口相关的功能函数
 
 #include "uart.h"
+#include "cmsis_os.h"
 
 /* 
 ********************************************************************************************************** 
@@ -15,6 +16,7 @@
 */
 extern UART_HandleTypeDef huart1;
 extern UART_HandleTypeDef huart2;
+extern SemaphoreHandle_t xSemaphore_uartTx;
 
 ///* 
 //********************************************************************************************************* 
@@ -78,10 +80,12 @@ void UartSendData(USART_TypeDef *USARTx, uint8_t byte)
 void UartSendBytes(USART_TypeDef *USARTx, uint8_t *buf, uint16_t len)
 {
     uint8_t i = 0;
+	xSemaphoreTake( xSemaphore_uartTx, portMAX_DELAY );
     for (i = 0; i < len; i++)
     {
         UartSendData(USARTx, *buf++);
     }
+	xSemaphoreGive( xSemaphore_uartTx );
 }
 
 /* 

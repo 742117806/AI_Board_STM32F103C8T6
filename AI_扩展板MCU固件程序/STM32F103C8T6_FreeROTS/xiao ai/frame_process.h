@@ -260,7 +260,7 @@ void FrameData_74Convert(FRAME_CMD_t *srcData,uint8_t srcLen,uint8_t *outLen,uin
 
 
 
-#define Up_TimeOut_Val                              9     //250Byte约62.5ms
+//#define Up_TimeOut_Val                              9     //250Byte约62.5ms
 
 
 //HK各命令帧长度

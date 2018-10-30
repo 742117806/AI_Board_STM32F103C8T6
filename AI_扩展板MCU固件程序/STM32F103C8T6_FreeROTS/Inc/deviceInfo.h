@@ -11,7 +11,8 @@
 
 
 #define MAC_Data_Len    8       //设备的MAC长度，单位字节
-#define DEVICE_INFO_BASH_ADDR			(STM32_FLASH_END-2048)	//保存设备信息的首地址 ,在最后1K
+#define DEVICE_INFO_BASH_ADDR			(STM32_FLASH_END-2048)	//保存设备信息的首地址 ,在最后2K
+#define DEVICE_ROUTER_TAB_ADDR			(STM32_FLASH_END-6144)  //最后6K
 
 /*
 设备信息

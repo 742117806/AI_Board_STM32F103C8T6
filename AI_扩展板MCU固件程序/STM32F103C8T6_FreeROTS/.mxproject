@@ -1,7 +1,7 @@
 [PreviousGenFiles]
-HeaderPath=C:/Users/Administrator/Desktop/STM32F103C8T6/Inc
+HeaderPath=E:/工作项目/小AI扩展板/STM32F103C8T6_FreeROTS/Inc
 HeaderFiles=stm32f1xx_it.h;stm32f1xx_hal_conf.h;main.h;FreeRTOSConfig.h;
-SourcePath=C:/Users/Administrator/Desktop/STM32F103C8T6/Src
+SourcePath=E:/工作项目/小AI扩展板/STM32F103C8T6_FreeROTS/Src
 SourceFiles=stm32f1xx_it.c;stm32f1xx_hal_msp.c;main.c;freertos.c;
 
 [PreviousLibFiles]

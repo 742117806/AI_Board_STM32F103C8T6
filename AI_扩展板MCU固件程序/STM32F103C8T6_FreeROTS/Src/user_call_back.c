@@ -70,6 +70,23 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 		  time_dat++;
 		}
 		
+		if (UpCom_RxBuf.Over_time_count)
+		{
+			if (++UpCom_RxBuf.Over_time_count > Up_TimeOut_Val)
+			{
+				UpCom_RxBuf.Over_time_count = 0;
+				UpCom_RxBuf.Rx_Status = UartRx_FrameHead;
+			}
+		}
+
+//		if (Wireless_Buf.Sent_TimeOut_Cnt > 0)
+//		{
+//			if (++Wireless_Buf.Sent_TimeOut_Cnt > WLSent_TimeOut_Val)
+//			{
+//				Wireless_Buf.Sent_TimeOut_Cnt = 0;
+//				WIRELESS_STATUS = Wireless_TX_Finish;
+//			}
+//		}		
 	}
 }
 

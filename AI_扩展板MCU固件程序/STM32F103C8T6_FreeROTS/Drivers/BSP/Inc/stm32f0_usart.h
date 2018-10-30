@@ -18,7 +18,7 @@
 
 
 
-#define Up_TimeOut_Val                              9     //250Byte约62.5ms
+#define Up_TimeOut_Val                              50     //250Byte约62.5ms
 
 
 //HK各命令帧长度
@@ -149,7 +149,7 @@ typedef struct
   
   uint8_t FrameTotalLen;
   uint8_t Frame_Data[HKFrame_LenMax];
-  volatile uint8_t Over_time_count;
+  volatile uint8_t Over_time_count;		
 }UpCom_Rx_TypDef;
 
 
@@ -161,7 +161,7 @@ typedef struct
 
 
 extern UpCom_Rx_TypDef         UpCom_RxBuf;
-extern UartFrame_TX_TypDef     UpCom_TxBuf;
+//extern UartFrame_TX_TypDef     UpCom_TxBuf;
 extern uint8_t  Secret_GKey_Flag;     //密钥公钥存在标志
 extern uint8_t  Secret_KeyOk_Flag;     //密钥OK标志
 

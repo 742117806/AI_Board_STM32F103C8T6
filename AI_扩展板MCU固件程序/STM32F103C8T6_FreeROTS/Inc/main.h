@@ -69,6 +69,10 @@
 #define LEDG_GPIO_Port GPIOA
 #define LEDR_Pin GPIO_PIN_5
 #define LEDR_GPIO_Port GPIOA
+#define SI4438_RX_Pin GPIO_PIN_12
+#define SI4438_RX_GPIO_Port GPIOB
+#define SI4438_TX_Pin GPIO_PIN_13
+#define SI4438_TX_GPIO_Port GPIOB
 #define SI4438_SDN_Pin GPIO_PIN_11
 #define SI4438_SDN_GPIO_Port GPIOA
 #define SI4438_nIRQ_Pin GPIO_PIN_12

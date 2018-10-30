@@ -4,7 +4,7 @@
 
 
 UpCom_Rx_TypDef         UpCom_RxBuf;
-UartFrame_TX_TypDef     UpCom_TxBuf;
+//UartFrame_TX_TypDef     UpCom_TxBuf;
 
 uint8_t  Secret_GKey_Flag;     //密钥公钥存在标志
 uint8_t  Secret_KeyOk_Flag;     //密钥OK标志

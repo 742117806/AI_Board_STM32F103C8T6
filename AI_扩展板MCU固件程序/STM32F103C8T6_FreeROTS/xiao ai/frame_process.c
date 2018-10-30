@@ -1,3 +1,4 @@
+
 #include "frame_process.h"
 #include "aes.h"
 #include "stmflash.h"
@@ -7,9 +8,10 @@
 #include "user_call_back.h"
 #include "delay.h"
 #include "wireless_app.h"
+#include "74.h"
 
 DevicePara_TypDef Device_ParaBuf;
-HKFrame_TypDef HKFrame_Buf;
+//HKFrame_TypDef HKFrame_Buf;
 uint8_t LANGroup_Addr[3];
 uint8_t Local_MAC_Addr[MAC_Data_Len + 5];
 
@@ -418,7 +420,7 @@ uint8_t MACRead_Process(uint8_t *p_buf)
     else
         return 0;
 }
-
+#if 0
 void Local_CmdFrame_Process(uint8_t *p_source, HKFrame_TypDef *p_framebuf, DevicePara_TypDef *p_device)
 {
     uint8_t reply_flag = 0;
@@ -662,40 +664,32 @@ void RemoteDown_CmdFrame_Process(uint8_t *p_source, uint8_t len)
 
     if (memcmp(&p_source[Region_AddrNumber + 1], LANGroup_Addr, 3) != 0)
         return; //群组地址不一样，返回
+     UpUart_DataTx(p_source, len, &UpCom_TxBuf);
 
-#ifdef Use_Rout
-    Frame_Wait_Cnt = 0;
-#endif
-    if (p_source[Region_SeqNumber] & 0x60)
-    {
-        if (!Secret_KeyOk_Flag)
-            return;
-        send_len = Encrypt_Convert(p_source, len, 1); //做解密给上位机
-    }
-    else
-    {
-        send_len = Frame_Compose(p_source);
-    }
 
-#ifdef Use_Rout
-    if (p_source[Region_SeqNumber] & 0x80)
-    {
-        //RoutPath_Read(p_source[Region_AddrNumber]);
-        RoutPath_Save(&Rout_TempTab, &p_source[Region_DataAFNNumber + p_source[Region_DataLenNumber]], p_source[Region_AddrNumber]); //保存路由表
-        send_len = Frame_RoutRegion_Delete(p_source);
-    }
-#endif
-    UpUart_DataTx(p_source, send_len, &UpCom_TxBuf);
+//    if (p_source[Region_SeqNumber] & 0x60)
+//    {
+//        if (!Secret_KeyOk_Flag)
+//            return;
+//        send_len = Encrypt_Convert(p_source, len, 1); //做解密给上位机
+//    }
+//    else
+//    {
+//        send_len = Frame_Compose(p_source);
+//    }
+
+
+//	
+//    UpUart_DataTx(p_source, send_len, &UpCom_TxBuf);
 }
 
 void RemoteDown_EventFrame_Process(uint8_t *p_source, uint8_t len, HKFrame_TypDef *p_framebuf)
 {
-#ifdef Use_Rout
-    uint8_t rout_region[3 + RoutSeries_Size];
-#endif
+
 
     uint8_t send_len;
     uint8_t *p_buf = p_framebuf->FrameProcess_Buf;
+	FRAME_CMD_t *p_frameCmd = (FRAME_CMD_t *)p_buf;
 
     if (memcmp(&p_source[Region_AddrNumber + 1], LANGroup_Addr, 3) != 0)
         return; //群组地址不一样，返回
@@ -703,26 +697,17 @@ void RemoteDown_EventFrame_Process(uint8_t *p_source, uint8_t len, HKFrame_TypDe
     if (p_framebuf->RetryBuf_Space == 0Xff)
         return;
 
-    if (p_source[Region_SeqNumber] & 0x60)
-    {
-        if (!Secret_KeyOk_Flag)
-            return;
-        send_len = Encrypt_Convert(p_source, len, 1); //解密
-    }
-    else
+//    if (p_source[Region_SeqNumber] & 0x60)
+//    {
+//        if (!Secret_KeyOk_Flag)
+//            return;
+//        send_len = Encrypt_Convert(p_source, len, 1); //解密
+//    }
+//    else
         send_len = len;
         ///////////////////////////////////////////////////////
-#ifdef Use_Rout
-    if (p_source[Region_SeqNumber] & 0x80)
-    {
-        //memmove(rout_region, &p_source[len - (3 +(3+RoutSeries_Size))], 3+RoutSeries_Size);
-        memmove(rout_region, &p_source[Region_DataAFNNumber + p_source[Region_DataLenNumber]], 3 + RoutSeries_Size);
-        //RoutPath_Read(p_source[Region_AddrNumber]);
-        RoutPath_Save(&Rout_TempTab, rout_region, p_source[Region_AddrNumber]);
-        send_len = Frame_RoutRegion_Delete(p_source);
-    }
-#endif
-    send_len = Frame_Compose(p_source);
+
+//    send_len = Frame_Compose(p_source);
     //////////////////////////////////////////////////
     //Retry_Start(p_framebuf, p_source, send_len);
     UpUart_DataTx(p_source, send_len, &UpCom_TxBuf);
@@ -738,23 +723,16 @@ void RemoteDown_EventFrame_Process(uint8_t *p_source, uint8_t len, HKFrame_TypDe
         if (Secret_KeyOk_Flag)
         {
             send_len = Encrypt_Convert(p_buf, send_len, 0); //加密
-#ifdef Use_Rout
-            if (p_source[Region_SeqNumber] & 0x80)
-            {
-                send_len = Frame_RoutRegion_Add(p_buf, send_len, rout_region);
-            }
-#endif
+
+			send_len = FrameRouterCompose(p_frameCmd->addr_DA,p_buf,send_len);
             WIRELESS_ERROR_CODE = Si4438_Transmit_Start(&Wireless_Buf, Wireless_Channel[0], p_buf, send_len);
+			
         }
     }
     else
     {
-#ifdef Use_Rout
-        if (p_source[Region_SeqNumber] & 0x80)
-        {
-            send_len = Frame_RoutRegion_Add(p_buf, send_len, rout_region);
-        }
-#endif
+
+		send_len = FrameRouterCompose(p_frameCmd->addr_DA,p_buf,send_len);
         WIRELESS_ERROR_CODE = Si4438_Transmit_Start(&Wireless_Buf, Wireless_Channel[0], p_buf, send_len);
     }
 }
@@ -820,7 +798,7 @@ void UpReport_Start(HKFrame_TypDef *p_framebuf)
 
 #endif
 }
-
+ 9898
 
 //电器端使用（重试函数）
 void Retransmission_Process(HKFrame_TypDef *p_framebuf)
@@ -856,7 +834,7 @@ void Retransmission_Process(HKFrame_TypDef *p_framebuf)
         }
     }
 }
-
+#endif
 void SysTick_Handle(void)
 {
     static uint16_t time_cnt;

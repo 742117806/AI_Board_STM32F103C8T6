@@ -8,6 +8,7 @@
 #define HKData_LenMax                               228          //数据标识4+数据8MAX, 现在是逻辑地址帧（）
 #define HKFrame_LenMax                              (11+HKData_LenMax+16)     //头1+地址4+配置序号1+控制码1+数据长度1 +校验2+尾1+加密预留空间
 
+#define DEVICE_INDEX_OFFSET		31			//设备地址偏移量（设备取地址范围31-254）
 
 //串口烧录MAC命令
 typedef struct WRITE_MAC_CMD_
@@ -108,7 +109,9 @@ typedef struct FRAME_ROUTER_CTRL_
 {
 	uint8_t type:1;			//帧类型，1通信，0组网
 	uint8_t mode:1;			//帧模式，0正常，1LDC休眠省电
-	uint8_t NN:6;					//预留
+	uint8_t heat:1;			//心跳帧标志
+	uint8_t nn:4;			//预留
+	uint8_t dir:1;			//传输方向，0主，1从	
 }FRAME_ROUTER_CTRL_t;
 
 //路由级数和每一级对应的通信方式
@@ -133,6 +136,56 @@ typedef struct FRAME_ROUTER_CMD_
 		
 }FRAME_ROUTER_CMD_t;
 
+//路由层协议主站发出帧结构
+typedef struct FRAME_ROUTER_MASTER_CMD_
+{
+	uint8_t head_h;     //0x69
+	uint8_t head_l;     //0x69
+	uint8_t len;		//长度（包括长度字节到结束符前面字节数）
+	uint8_t len_c;     //长度按位取反
+	FRAME_ROUTER_CTRL_t ctrl;		//帧控制
+    uint8_t netNum[2];			//网络号，取逻辑地址的低位2个字节
+	uint8_t des_addr;			//目标地址
+	uint8_t src_addr[3];			//源地址
+	FRAME_ROUTER_NUMBER_t routerNum;	//路由级数
+	uint8_t router_len;			//路由表长度
+		
+}FRAME_ROUTER_MASTER_CMD_t;
+
+//路由层协议主站发出帧结构 (针对配网时候，目标地址是8个字节的MAC地址)
+typedef struct FRAME_ROUTER_MASTER_EXT_CMD_
+{
+	uint8_t head_h;     //0x69
+	uint8_t head_l;     //0x69
+	uint8_t len;		//长度（包括长度字节到结束符前面字节数）
+	uint8_t len_c;     //长度按位取反
+	FRAME_ROUTER_CTRL_t ctrl;		//帧控制
+    uint8_t netNum[2];			//网络号，取逻辑地址的低位2个字节
+	uint8_t des_addr[8];			//目标地址
+	uint8_t src_addr[3];			//源地址
+	FRAME_ROUTER_NUMBER_t routerNum;	//路由级数
+	uint8_t router_len;			//路由表长度
+		
+}FRAME_ROUTER_MASTER_EXT_CMD_t;
+
+//路由层协议从站发出帧结构
+typedef struct FRAME_ROUTER_SLAVE_CMD_
+{
+	uint8_t head_h;     //0x69
+	uint8_t head_l;     //0x69
+	uint8_t len;		//长度（包括长度字节到结束符前面字节数）
+	uint8_t len_c;     //长度按位取反
+	FRAME_ROUTER_CTRL_t ctrl;		//帧控制
+    uint8_t netNum[2];			//网络号，取逻辑地址的低位2个字节
+	uint8_t des_addr[3];			//目标地址
+	uint8_t src_addr;			//源地址
+	FRAME_ROUTER_NUMBER_t routerNum;	//路由级数
+	uint8_t router_len;			//路由表长度
+		
+}FRAME_ROUTER_SLAVE_CMD_t;
+
+
+
 //路由层协议帧结构 (针对配网时候，目标地址是8个字节的MAC地址)
 typedef struct FRAME_ROUTER_EXT_CMD_
 {
@@ -149,6 +202,71 @@ typedef struct FRAME_ROUTER_EXT_CMD_
 	
 
 }FRAME_ROUTER_EXT_CMD_t;
+
+//串口转无线的队列结构体
+typedef struct QUEUE_UART_TO_WIRELESS_
+{
+	uint8_t msg[256];		//队列数据
+	uint8_t len;			//数据长度
+	uint8_t toCh;			//要发送的无线数据通道号
+	
+}QUEUE_WIRELESS_SEND_t;
+
+//无线数据重发后要等到的数据标识3个字节和帧序号
+typedef struct RETRY_WAITE_FOR_
+{
+	uint8_t index[3];    //数据标识
+	uint8_t frameNum;	//帧序号
+	uint8_t retryCnt;		//重发次数
+	uint8_t flag;		//等待回应标志，1要等待回复，已经等到回复
+} RETRY_WAITE_FOR_t;
+
+
+/* 路由表结构相关定义 */
+//每个节点的地址和对应的信号强度值
+typedef struct NODE_
+{
+	uint8_t addr;
+	uint8_t rssi;
+}NODE_t;
+
+
+//节点链接起来的路径
+typedef struct PATH_
+{
+	uint8_t len;		//路由表长度
+	uint8_t addr[3];   	//1级中继 , 2级中继, 3级中继
+}PATH_t;
+
+
+//目的设备
+typedef struct DES_DEVICE_
+{
+	//uint8_t des_addr;		//目的地设备地址
+	uint8_t des_rssi;		//目的地设备信号强度
+	PATH_t path1;
+	PATH_t path2;
+	PATH_t path3;
+}DES_DEVICE_t;
+
+//当前应答的路由表和表长度结构
+typedef struct ROUTER_TAB_ACK_
+{
+	uint8_t len;
+	uint8_t table[3];
+	
+}ROUTER_TAB_ACK_t;
+
+//缓存设备邻近节点的信号强度结构
+typedef struct ROUTER_BROTHER_RSSI_
+{
+	uint8_t addr1;
+	uint8_t rssi1;		//3个邻近节点 
+	uint8_t addr2;
+	uint8_t rssi2;		//3个邻近节点 
+	uint8_t addr3;
+	uint8_t rssi3;		//3个邻近节点 
+}ROUTER_BROTHER_RSSI_t;
 
 
 #endif

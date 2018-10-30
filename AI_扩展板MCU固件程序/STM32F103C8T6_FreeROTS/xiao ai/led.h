@@ -92,8 +92,8 @@ typedef enum
 
 
 
-#define LED_AROUND_LIGHT_VALUE				  5             //LED灯的亮度值
-#define LED_CENTRE_LIGHT_VALUE				  255         //LED灯的亮度值
+#define LED_AROUND_LIGHT_VALUE				  2             //LED灯的亮度值
+#define LED_CENTRE_LIGHT_VALUE				  30         //LED灯的亮度值
 
 
 #define LED_KEY1_ORANGE_MAP_BITS			0x0A		//按键1指示灯橙色

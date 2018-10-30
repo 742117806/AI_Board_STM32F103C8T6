@@ -100,9 +100,9 @@
 #define configUSE_TICK_HOOK                      0
 #define configCPU_CLOCK_HZ                       ( SystemCoreClock )
 #define configTICK_RATE_HZ                       ((TickType_t)1000)
-#define configMAX_PRIORITIES                     ( 7 )
-#define configMINIMAL_STACK_SIZE                 ((uint16_t)128)
-#define configTOTAL_HEAP_SIZE                    ((size_t)8192)
+#define configMAX_PRIORITIES                     ( 8 )
+#define configMINIMAL_STACK_SIZE                 ((uint16_t)64)
+#define configTOTAL_HEAP_SIZE                    ((size_t)10240)
 #define configMAX_TASK_NAME_LEN                  ( 16 )
 #define configUSE_16_BIT_TICKS                   0
 #define configUSE_MUTEXES                        1
@@ -166,6 +166,8 @@ standard names. */
 
 /* USER CODE BEGIN Defines */   	      
 /* Section where parameter definitions can be added (for instance, to override default ones in FreeRTOS.h) */
+#define INCLUDE_uxTaskGetStackHighWaterMark		1
+
 /* USER CODE END Defines */ 
 
 #endif /* FREERTOS_CONFIG_H */

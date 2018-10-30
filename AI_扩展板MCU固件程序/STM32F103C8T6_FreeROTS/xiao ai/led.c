@@ -33,7 +33,7 @@ void SN3218_Init(void)
 	for(i=0;i<18;i++)
 	{
 
-		I2C_Write1Byte(15);        //第一路LED亮度30，接着后面的各路
+		I2C_Write1Byte(LED_AROUND_LIGHT_VALUE);        //第一路LED亮度30，接着后面的各路
 	}
 	I2C_Stop();
 	
@@ -183,6 +183,7 @@ void LED_Breath(uint32_t ledBits, uint8_t brightMax,uint8_t speed)
 	static uint8_t light = 0; //PWM值
 	static uint8_t dir;   //变化方向
 	static uint8_t time_cnt = 0;
+	uint8_t light_cut = 0;
 	
 	time_cnt ++;
 
@@ -191,7 +192,15 @@ void LED_Breath(uint32_t ledBits, uint8_t brightMax,uint8_t speed)
 		time_cnt = 0;
 		LED_Switch(ledBits|LED_CENTRE_MAP_BITS);		//打开所有LED灯,|LED_CENTRE_MAP_BITS为了排除中间灯的控制
 		
-		LED_LightCtrl(ledBits,light);  //控制亮度
+		if(light>7)
+		{
+			light_cut = 7;
+		}
+		else
+		{
+		  light_cut = light;
+		}
+		LED_LightCtrl(ledBits,light_cut);  //控制亮度
 		
 		if(light == brightMax)
 		{
