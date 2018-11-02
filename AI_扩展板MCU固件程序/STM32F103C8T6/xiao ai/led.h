@@ -9,10 +9,6 @@
 
 
 
-
-
-
-
 #define SN3218_ADDR                          0xa8
 #define Addr_All_Switch                           0x00
 #define Addr_LED1_Blue                       0X01
@@ -156,8 +152,8 @@ typedef enum
 
 
 /************* Ä¬ÈÏ²ÎÊý *****************/
-#define Alwayslight_Brightness        15
-#define Water_Brightness              15
+#define Alwayslight_Brightness        5
+#define Water_Brightness              5
 //#define MiddleLed_Brightness          63
 #define Water_Gap                     10
 #define Breathe_Gap                   3

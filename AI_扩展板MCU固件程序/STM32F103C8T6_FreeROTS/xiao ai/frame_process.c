@@ -60,144 +60,144 @@ uint8_t const SecretTest_ID[3] = {0x55, 0x55, 0x55}; //密文下发
 
 void Rsa_Decode(uint8_t *p_minw)
 {
-    uint8_t *Mi_Yue; //02 7A D2 B3 82 97 C6 A6 86 14 A6 67 CB 74 CD 21
-    uint8_t *Mo_Zhi; //62 DA CF C7 85 2E E8 B1 A3 D4 0E 22 D1 A1 8D 17
-    uint8_t *Mi_Wen; //30 34 47 F9 6D 76 75 A7 8F 47 26 8E 70 4C BF 21
-    uint8_t *RSA_TempBuf;
+  uint8_t *Mi_Yue; //02 7A D2 B3 82 97 C6 A6 86 14 A6 67 CB 74 CD 21
+  uint8_t *Mo_Zhi; //62 DA CF C7 85 2E E8 B1 A3 D4 0E 22 D1 A1 8D 17
+  uint8_t *Mi_Wen; //30 34 47 F9 6D 76 75 A7 8F 47 26 8E 70 4C BF 21
+  uint8_t *RSA_TempBuf;
 
-    //sim(); //关掉所有中断
-    //__disable_interrupt();
+  //sim(); //关掉所有中断
+  //__disable_interrupt();
 #if (0)
-    Mi_Wen = (uint8_t *)malloc(RsaByte_Size + 3);
-    Mi_Yue = (uint8_t *)malloc(RsaByte_Size);
-    Mo_Zhi = (uint8_t *)malloc(RsaByte_SizeMax);
-    RSA_TempBuf = (uint8_t *)malloc(RsaByte_SizeMax);
+  Mi_Wen = (uint8_t *)malloc(RsaByte_Size + 3);
+  Mi_Yue = (uint8_t *)malloc(RsaByte_Size);
+  Mo_Zhi = (uint8_t *)malloc(RsaByte_SizeMax);
+  RSA_TempBuf = (uint8_t *)malloc(RsaByte_SizeMax);
 #else
-    Mi_Yue = aes_w;
-    Mo_Zhi = &aes_w[RsaByte_Size];
-    Mi_Wen = &aes_w[RsaByte_Size + RsaByte_SizeMax];
-    RSA_TempBuf = &aes_w[RsaByte_Size * 2 + RsaByte_SizeMax + 3];
+  Mi_Yue = aes_w;
+  Mo_Zhi = &aes_w[RsaByte_Size];
+  Mi_Wen = &aes_w[RsaByte_Size + RsaByte_SizeMax];
+  RSA_TempBuf = &aes_w[RsaByte_Size * 2 + RsaByte_SizeMax + 3];
 #endif
-    memset(Mi_Wen, 0, RsaByte_Size);
-    memset(Mi_Yue, 0, RsaByte_Size);
-    memset(Mo_Zhi, 0, RsaByte_SizeMax);
-    memset(RSA_TempBuf, 0, RsaByte_SizeMax);
+  memset(Mi_Wen, 0, RsaByte_Size);
+  memset(Mi_Yue, 0, RsaByte_Size);
+  memset(Mo_Zhi, 0, RsaByte_SizeMax);
+  memset(RSA_TempBuf, 0, RsaByte_SizeMax);
 
 #ifdef USE_USAT_RSAKey
 
 #if (0) //已经准备好了，不需要再读
-    Eeprom_Read(KEY_StartAddr, (uint16_t *)aes_out, AesBuf_Size / 2);
+  Eeprom_Read(KEY_StartAddr, (uint16_t *)aes_out, AesBuf_Size / 2);
 #endif
-    memmove(Mi_Yue, aes_out, RsaByte_Size);
-    memmove(&Mo_Zhi[1], &aes_out[RsaByte_Size], RsaByte_Size);
+  memmove(Mi_Yue, aes_out, RsaByte_Size);
+  memmove(&Mo_Zhi[1], &aes_out[RsaByte_Size], RsaByte_Size);
 
 #else //从程序常量中获取公钥和模值
-    memmove(Mi_Yue, Mi_Yue_Tab, RsaByte_Size);
-    memmove(&Mo_Zhi[1], Mo_Zhi_Tab, RsaByte_Size);
+  memmove(Mi_Yue, Mi_Yue_Tab, RsaByte_Size);
+  memmove(&Mo_Zhi[1], Mo_Zhi_Tab, RsaByte_Size);
 
 #endif
 
-    //Eeprom_ByteRead(Mi_Wen_EAddr, Mi_Wen, RsaByte_Size+3);
-    memmove(Mi_Wen, &aes_out[RsaByte_Size * 2], RsaByte_Size + 3);
+  //Eeprom_ByteRead(Mi_Wen_EAddr, Mi_Wen, RsaByte_Size+3);
+  memmove(Mi_Wen, &aes_out[RsaByte_Size * 2], RsaByte_Size + 3);
 
-    LargeNumber_Power_Mod(p_minw, Mi_Wen, Mi_Yue, RSA_TempBuf, Mo_Zhi);
+  LargeNumber_Power_Mod(p_minw, Mi_Wen, Mi_Yue, RSA_TempBuf, Mo_Zhi);
 
 #if (0)
-    p_minw[3] = Mi_Wen[RsaByte_Size + 0];
-    p_minw[7] = Mi_Wen[RsaByte_Size + 1];
-    p_minw[11] = Mi_Wen[RsaByte_Size + 2];
+  p_minw[3] = Mi_Wen[RsaByte_Size + 0];
+  p_minw[7] = Mi_Wen[RsaByte_Size + 1];
+  p_minw[11] = Mi_Wen[RsaByte_Size + 2];
 #endif
 
 #if (0)
-    free(Mi_Yue);
-    free(Mo_Zhi);
-    free(Mi_Wen);
-    free(RSA_TempBuf);
+  free(Mi_Yue);
+  free(Mo_Zhi);
+  free(Mi_Wen);
+  free(RSA_TempBuf);
 #endif
-    //rim();
-    //__enable_interrupt();
+  //rim();
+  //__enable_interrupt();
 }
 
 uint8_t RealData_Detect(uint8_t *p, uint8_t len, uint8_t Frame_len)
 {
-    uint16_t crc16_val;
-    uint8_t crc_len;
+  uint16_t crc16_val;
+  uint8_t crc_len;
 
-    if ((p[0] != HKFreamHeader) && (p[0] != AESFreamHeader))
-        return 1;
+  if ((p[0] != HKFreamHeader) && (p[0] != AESFreamHeader))
+    return 1;
 
-    if (p[0] == HKFreamHeader)
-        crc_len = Frame_len - 3;
-    else
-        crc_len = Frame_len - 2;
+  if (p[0] == HKFreamHeader)
+    crc_len = Frame_len - 3;
+  else
+    crc_len = Frame_len - 2;
 
-    crc16_val = CRC16_2(p, len);
-    if ((crc16_val >> 8) != p[crc_len]) //比较CRC16高字节区
-        return 1;
-    if ((crc16_val & 0xff) != p[crc_len + 1])
-        return 1;
+  crc16_val = CRC16_2(p, len);
+  if ((crc16_val >> 8) != p[crc_len]) //比较CRC16高字节区
+    return 1;
+  if ((crc16_val & 0xff) != p[crc_len + 1])
+    return 1;
 
-    return 0;
+  return 0;
 }
 
 uint8_t FrameData_Detect(uint8_t *p, uint8_t len)
 {
-    uint16_t crc16_val;
-    uint8_t crc_len;
+  uint16_t crc16_val;
+  uint8_t crc_len;
 
-    if ((p[0] != HKFreamHeader) && (p[0] != AESFreamHeader))
-        return 1;
+  if ((p[0] != HKFreamHeader) && (p[0] != AESFreamHeader))
+    return 1;
 
-    if (p[0] == HKFreamHeader)
-        crc_len = len - 3;
-    else
-        crc_len = len - 2;
-    crc16_val = CRC16_2(p, crc_len);
-    if ((crc16_val >> 8) != p[crc_len])
-        return 1;
-    if ((crc16_val & 0xff) != p[crc_len + 1])
-        return 1;
+  if (p[0] == HKFreamHeader)
+    crc_len = len - 3;
+  else
+    crc_len = len - 2;
+  crc16_val = CRC16_2(p, crc_len);
+  if ((crc16_val >> 8) != p[crc_len])
+    return 1;
+  if ((crc16_val & 0xff) != p[crc_len + 1])
+    return 1;
 
-    return 0;
+  return 0;
 }
 
 uint8_t Frame_Check(uint8_t *p, uint8_t Len) //给无线编码使用的校验函数
 {
-    uint8_t ComposeFrame_Len;
-    uint16_t crc16_val;
+  uint8_t ComposeFrame_Len;
+  uint16_t crc16_val;
 
-    p[Region_HeaderNumber] = HKFreamHeader;
+  p[Region_HeaderNumber] = HKFreamHeader;
 
-    ComposeFrame_Len = Len;
-    crc16_val = CRC16_2(p, ComposeFrame_Len);
-    p[ComposeFrame_Len] = crc16_val >> 8;
-    ComposeFrame_Len++;
-    p[ComposeFrame_Len] = crc16_val & 0xff;
-    ComposeFrame_Len++;
-    p[ComposeFrame_Len] = HKFreamEnd;
-    ComposeFrame_Len++;
+  ComposeFrame_Len = Len;
+  crc16_val = CRC16_2(p, ComposeFrame_Len);
+  p[ComposeFrame_Len] = crc16_val >> 8;
+  ComposeFrame_Len++;
+  p[ComposeFrame_Len] = crc16_val & 0xff;
+  ComposeFrame_Len++;
+  p[ComposeFrame_Len] = HKFreamEnd;
+  ComposeFrame_Len++;
 
-    return ComposeFrame_Len;
+  return ComposeFrame_Len;
 }
 uint8_t Frame_Compose(uint8_t *p) //给上位机的帧进行校验
 {
-    uint8_t ComposeFrame_Len;
-    uint16_t crc16_val;
+  uint8_t ComposeFrame_Len;
+  uint16_t crc16_val;
 
-    p[Region_HeaderNumber] = HKFreamHeader;
+  p[Region_HeaderNumber] = HKFreamHeader;
 
-    p[Region_CmdNumber] &= ~(1 << 5);
+  p[Region_CmdNumber] &= ~(1 << 5);
 
-    ComposeFrame_Len = p[Region_DataLenNumber] + Region_DataAFNNumber;
-    crc16_val = CRC16_2(p, ComposeFrame_Len);
-    p[ComposeFrame_Len] = crc16_val >> 8;
-    ComposeFrame_Len++;
-    p[ComposeFrame_Len] = crc16_val & 0xff;
-    ComposeFrame_Len++;
-    p[ComposeFrame_Len] = HKFreamEnd;
-    ComposeFrame_Len++;
+  ComposeFrame_Len = p[Region_DataLenNumber] + Region_DataAFNNumber;
+  crc16_val = CRC16_2(p, ComposeFrame_Len);
+  p[ComposeFrame_Len] = crc16_val >> 8;
+  ComposeFrame_Len++;
+  p[ComposeFrame_Len] = crc16_val & 0xff;
+  ComposeFrame_Len++;
+  p[ComposeFrame_Len] = HKFreamEnd;
+  ComposeFrame_Len++;
 
-    return ComposeFrame_Len;
+  return ComposeFrame_Len;
 }
 
 /****************************************************************
@@ -209,127 +209,126 @@ uint8_t Frame_Compose(uint8_t *p) //给上位机的帧进行校验
         @mode 1编码，0解码
 **返回值:无
 ****************************************************************/
-void FrameData_74Convert(FRAME_CMD_t *srcData,uint8_t srcLen,uint8_t *outLen,uint8_t mode)
+void FrameData_74Convert(FRAME_CMD_t *srcData, uint8_t srcLen, uint8_t *outLen, uint8_t mode)
 {
-	uint8_t frame_len;
-	uint8_t temp[256]={0};
-	uint16_t crc16;
-	uint8_t *p_frame_data;
-	
-	if(mode==0)	//解码
-	{
-       	frame_len = _74DecodeBytes((uint8_t*)&srcData->userData,temp,srcLen-11);       //把编码过后加的CRC16(2个字节)去掉
-	    temp[frame_len] = HKFreamEnd;
-		memcpy((uint8_t*)&srcData->userData,temp,frame_len+1);
-		*outLen = frame_len+9;		
-	}
-	else        //编码
-	{
-		frame_len = _74CodeBytes((uint8_t*)&srcData->userData,temp,srcLen-9);    //74编码
-		
-		memcpy((uint8_t*)&srcData->userData,temp,frame_len);					//把编码好的数据复制回原来数据的缓存区，
-		crc16 = CRC16_2((uint8_t*)srcData,frame_len+8);			//编码后长度+协议帧前面没编码的8个字节帧数据
-		p_frame_data =  (uint8_t*)&srcData->userData;
-		p_frame_data[frame_len]= (crc16 >> 8);
-		p_frame_data[frame_len+1]= (crc16 & 0x00ff);
-		p_frame_data[frame_len+2] = HKFreamEnd;				                            //编码后加上帧结束0x53
-		*outLen = frame_len+8+3;
-	}
-}
+  uint8_t frame_len;
+  uint8_t temp[256] = {0};
+  uint16_t crc16;
+  uint8_t *p_frame_data;
 
+  if (mode == 0) //解码
+  {
+    frame_len = _74DecodeBytes((uint8_t *)&srcData->userData, temp, srcLen - 11); //把编码过后加的CRC16(2个字节)去掉
+    temp[frame_len] = HKFreamEnd;
+    memcpy((uint8_t *)&srcData->userData, temp, frame_len + 1);
+    *outLen = frame_len + 9;
+  }
+  else //编码
+  {
+    frame_len = _74CodeBytes((uint8_t *)&srcData->userData, temp, srcLen - 9); //74编码
+
+    memcpy((uint8_t *)&srcData->userData, temp, frame_len); //把编码好的数据复制回原来数据的缓存区，
+    crc16 = CRC16_2((uint8_t *)srcData, frame_len + 8);     //编码后长度+协议帧前面没编码的8个字节帧数据
+    p_frame_data = (uint8_t *)&srcData->userData;
+    p_frame_data[frame_len] = (crc16 >> 8);
+    p_frame_data[frame_len + 1] = (crc16 & 0x00ff);
+    p_frame_data[frame_len + 2] = HKFreamEnd; //编码后加上帧结束0x53
+    *outLen = frame_len + 8 + 3;
+  }
+}
 
 void Retry_Start(HKFrame_TypDef *p_framebuf, uint8_t *p_source, uint8_t source_len)
 {
-    uint8_t i;
-    Retry_TypDef *p_retry;
+  uint8_t i;
+  Retry_TypDef *p_retry;
 
-    for (i = 0; i < Retry_Buf_Size; i++)
+  for (i = 0; i < Retry_Buf_Size; i++)
+  {
+    if ((p_framebuf->RetryBuf_Space & (1 << i)) == 0)
     {
-        if ((p_framebuf->RetryBuf_Space & (1 << i)) == 0)
-        {
-            p_framebuf->RetryBuf_Space |= (1 << i);
-            p_retry = &p_framebuf->Retry_Buf[i]; //
-            p_retry->RetryBuf_Number = i;
-            p_retry->Retry_SendLen = source_len;
-            memmove(p_retry->Retry_DataBuf, p_source, source_len);
-            //rim();
-            //p_retry->Retry_StartTime = SYSTICK_CNT;
-            //sim();
-            p_retry->RetryCnt = 2;
+      p_framebuf->RetryBuf_Space |= (1 << i);
+      p_retry = &p_framebuf->Retry_Buf[i]; //
+      p_retry->RetryBuf_Number = i;
+      p_retry->Retry_SendLen = source_len;
+      memmove(p_retry->Retry_DataBuf, p_source, source_len);
+      //rim();
+      //p_retry->Retry_StartTime = SYSTICK_CNT;
+      //sim();
+      p_retry->RetryCnt = 2;
 
-            return;
-        }
+      return;
     }
+  }
 }
 
 /****************************Convert_Mode 为0：加密   为1：解密*******************************/
 uint8_t Encrypt_Convert(uint8_t *p_source, uint8_t len, uint8_t Convert_Mode)
 {
 #ifdef Use_Rout
-    uint8_t rout_region[3 + RoutSeries_Size];
+  uint8_t rout_region[3 + RoutSeries_Size];
 #endif
-    uint16_t crc16_val;
-    uint8_t i, res_len;
-    uint8_t Encode_Round;
-    uint8_t Encode_Mantissa;
-    uint8_t Encode_Len = p_source[Region_DataLenNumber];
+  uint16_t crc16_val;
+  uint8_t i, res_len;
+  uint8_t Encode_Round;
+  uint8_t Encode_Mantissa;
+  uint8_t Encode_Len = p_source[Region_DataLenNumber];
 
-    Encode_Round = Encode_Len / 16;
-    Encode_Mantissa = Encode_Len % 16;
+  Encode_Round = Encode_Len / 16;
+  Encode_Mantissa = Encode_Len % 16;
 #ifdef Use_Rout
-    if ((p_source[Region_SeqNumber] & 0x80) && Convert_Mode)
-    {
-        //memmove(rout_region, &p_source[Region_DataAFNNumber + p_source[Region_DataLenNumber]], 3+RoutSeries_Size);
-        memmove(rout_region, &p_source[len - (3 + 3 + RoutSeries_Size)], 3 + RoutSeries_Size);
-    }
+  if ((p_source[Region_SeqNumber] & 0x80) && Convert_Mode)
+  {
+    //memmove(rout_region, &p_source[Region_DataAFNNumber + p_source[Region_DataLenNumber]], 3+RoutSeries_Size);
+    memmove(rout_region, &p_source[len - (3 + 3 + RoutSeries_Size)], 3 + RoutSeries_Size);
+  }
 #endif
-    for (i = 0; i < Encode_Round; i++)
+  for (i = 0; i < Encode_Round; i++)
+  {
+    memmove(aes_in, &p_source[Region_DataAFNNumber + 16 * i], 16);
+    if (Convert_Mode)
+      inv_cipher(aes_in, aes_out, aes_w);
+    else
+      cipher(aes_in, aes_out, aes_w);
+    memmove(&p_source[Region_DataAFNNumber + 16 * i], aes_out, 16);
+  }
+  if (Encode_Mantissa)
+  {
+    if (Convert_Mode)
     {
-        memmove(aes_in, &p_source[Region_DataAFNNumber + 16 * i], 16);
-        if (Convert_Mode)
-            inv_cipher(aes_in, aes_out, aes_w);
-        else
-            cipher(aes_in, aes_out, aes_w);
-        memmove(&p_source[Region_DataAFNNumber + 16 * i], aes_out, 16);
-    }
-    if (Encode_Mantissa)
-    {
-        if (Convert_Mode)
-        {
-            memmove(aes_in, &p_source[Region_DataAFNNumber + 16 * Encode_Round], 16);
-            inv_cipher(aes_in, aes_out, aes_w);
-            memmove(&p_source[Region_DataAFNNumber + 16 * i], aes_out, Encode_Mantissa);
-            res_len = len - 16 + Encode_Mantissa;
-        }
-        else
-        {
-            memmove(aes_in, &p_source[Region_DataAFNNumber + 16 * Encode_Round], Encode_Mantissa);
-            for (i = 0; i < (16 - Encode_Mantissa); i++)
-            {
-                p_source[Region_DataAFNNumber + 16 * Encode_Round + Encode_Mantissa + i] = 0;
-            }
-            //memmove(&aes_in[Encode_Mantissa], 0, (16 - Encode_Mantissa));
-            cipher(aes_in, aes_out, aes_w);
-            memmove(&p_source[Region_DataAFNNumber + 16 * Encode_Round], aes_out, 16);
-            res_len = len + 16 - Encode_Mantissa;
-        }
+      memmove(aes_in, &p_source[Region_DataAFNNumber + 16 * Encode_Round], 16);
+      inv_cipher(aes_in, aes_out, aes_w);
+      memmove(&p_source[Region_DataAFNNumber + 16 * i], aes_out, Encode_Mantissa);
+      res_len = len - 16 + Encode_Mantissa;
     }
     else
-        res_len = len;
-#ifdef Use_Rout
-    if ((p_source[Region_SeqNumber] & 0x80) && Convert_Mode)
     {
-        memmove(&p_source[Region_DataAFNNumber + p_source[Region_DataLenNumber]], rout_region, 3 + RoutSeries_Size);
-        res_len += (3 + RoutSeries_Size);
+      memmove(aes_in, &p_source[Region_DataAFNNumber + 16 * Encode_Round], Encode_Mantissa);
+      for (i = 0; i < (16 - Encode_Mantissa); i++)
+      {
+        p_source[Region_DataAFNNumber + 16 * Encode_Round + Encode_Mantissa + i] = 0;
+      }
+      //memmove(&aes_in[Encode_Mantissa], 0, (16 - Encode_Mantissa));
+      cipher(aes_in, aes_out, aes_w);
+      memmove(&p_source[Region_DataAFNNumber + 16 * Encode_Round], aes_out, 16);
+      res_len = len + 16 - Encode_Mantissa;
     }
+  }
+  else
+    res_len = len;
+#ifdef Use_Rout
+  if ((p_source[Region_SeqNumber] & 0x80) && Convert_Mode)
+  {
+    memmove(&p_source[Region_DataAFNNumber + p_source[Region_DataLenNumber]], rout_region, 3 + RoutSeries_Size);
+    res_len += (3 + RoutSeries_Size);
+  }
 
 #endif
-    crc16_val = CRC16_2(p_source, res_len - 3);
-    p_source[res_len - 3] = crc16_val >> 8;
-    p_source[res_len - 2] = crc16_val & 0xff;
-    p_source[res_len - 1] = HKFreamEnd;
+  crc16_val = CRC16_2(p_source, res_len - 3);
+  p_source[res_len - 3] = crc16_val >> 8;
+  p_source[res_len - 2] = crc16_val & 0xff;
+  p_source[res_len - 1] = HKFreamEnd;
 
-    return res_len;
+  return res_len;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////
@@ -386,39 +385,38 @@ void Led_Control_Process(uint8_t led_setval, DevicePara_TypDef *p_device)
 //解出AES
 uint8_t SecretKey_Process(DeviceInfo_t *p_deviceInfo)
 {
-		
-	memcpy(&aes_out[2*RsaByte_Size],p_deviceInfo->aes,16);
-	memcpy(&aes_out[3*RsaByte_Size],p_deviceInfo->addr_GA,3);
 
-	Rsa_Decode(aes_out);
+  memcpy(&aes_out[2 * RsaByte_Size], p_deviceInfo->aes, 16);
+  memcpy(&aes_out[3 * RsaByte_Size], p_deviceInfo->addr_GA, 3);
 
-	memcpy(LANGroup_Addr, deviceInfo.addr_GA, 3); //移入群组地址到群组地址BUF
-	key_expansion(aes_out, aes_w);
+  Rsa_Decode(aes_out);
 
-	Secret_KeyOk_Flag = 1;
+  memcpy(LANGroup_Addr, deviceInfo.addr_GA, 3); //移入群组地址到群组地址BUF
+  key_expansion(aes_out, aes_w);
 
+  Secret_KeyOk_Flag = 1;
 
-	Get_WireLessChannel(Wireless_Channel);
+  Get_WireLessChannel(Wireless_Channel);
 #ifdef Use_Rx_Hop
-	Wireless_Init(); //Initial Wireless，开始初始化无线
+  Wireless_Init(); //Initial Wireless，开始初始化无线
 #endif
-	Si4438_Receive_Start(Wireless_Channel[0]); //Start Receive
+  Si4438_Receive_Start(Wireless_Channel[0]); //Start Receive
 
-    return 0;
+  return 0;
 }
 
 uint8_t MACRead_Process(uint8_t *p_buf)
 {
-    Eeprom_Read(MAC_EAddr, (uint16_t *)Local_MAC_Addr, MAC_Data_Len + 5); //
+  Eeprom_Read(MAC_EAddr, (uint16_t *)Local_MAC_Addr, MAC_Data_Len + 5); //
 
-    if (0 == FrameData_Detect(Local_MAC_Addr, MAC_Data_Len + 5))
-    {
-        memmove(&p_buf[Region_DataValNumber], &Local_MAC_Addr[3], MAC_Data_Len);
-        p_buf[Region_DataLenNumber] = 12;
-        return 1;
-    }
-    else
-        return 0;
+  if (0 == FrameData_Detect(Local_MAC_Addr, MAC_Data_Len + 5))
+  {
+    memmove(&p_buf[Region_DataValNumber], &Local_MAC_Addr[3], MAC_Data_Len);
+    p_buf[Region_DataLenNumber] = 12;
+    return 1;
+  }
+  else
+    return 0;
 }
 #if 0
 void Local_CmdFrame_Process(uint8_t *p_source, HKFrame_TypDef *p_framebuf, DevicePara_TypDef *p_device)
@@ -837,68 +835,68 @@ void Retransmission_Process(HKFrame_TypDef *p_framebuf)
 #endif
 void SysTick_Handle(void)
 {
-    static uint16_t time_cnt;
+  static uint16_t time_cnt;
 
-    if ((SYSTICK_CNT & 0x07) == 0)
-    {
-        TICK_8ms = 1;
-    }
+  if ((SYSTICK_CNT & 0x07) == 0)
+  {
+    TICK_8ms = 1;
+  }
 
-    if (++time_cnt >= 1000) //1秒
+  if (++time_cnt >= 1000) //1秒
+  {
+    time_cnt = 0;
+    if (++RunningTime_Buf.second >= 60)
     {
-        time_cnt = 0;
-        if (++RunningTime_Buf.second >= 60)
+      RunningTime_Buf.second = 0;
+      if (++RunningTime_Buf.minute >= 60)
+      {
+        RunningTime_Buf.minute = 0;
+        if (++RunningTime_Buf.hour >= 24)
         {
-            RunningTime_Buf.second = 0;
-            if (++RunningTime_Buf.minute >= 60)
+          uint8_t date_size;
+
+          RunningTime_Buf.hour = 0;
+          switch (RunningTime_Buf.month)
+          {
+          case 1:
+          case 3:
+          case 5:
+          case 7:
+          case 8:
+          case 10:
+          case 12:
+            date_size = 31;
+            break;
+
+          case 4:
+          case 6:
+          case 9:
+          case 11:
+            date_size = 30;
+            break;
+
+          case 2:
+            if ((RunningTime_Buf.year & 0x03) == 0)
+              date_size = 29;
+            else
+              date_size = 28;
+            break;
+
+          default:
+            break;
+          }
+          if (++RunningTime_Buf.date > date_size)
+          {
+            RunningTime_Buf.date = 1;
+            if (++RunningTime_Buf.month > 12)
             {
-                RunningTime_Buf.minute = 0;
-                if (++RunningTime_Buf.hour >= 24)
-                {
-                    uint8_t date_size;
-
-                    RunningTime_Buf.hour = 0;
-                    switch (RunningTime_Buf.month)
-                    {
-                    case 1:
-                    case 3:
-                    case 5:
-                    case 7:
-                    case 8:
-                    case 10:
-                    case 12:
-                        date_size = 31;
-                        break;
-
-                    case 4:
-                    case 6:
-                    case 9:
-                    case 11:
-                        date_size = 30;
-                        break;
-
-                    case 2:
-                        if ((RunningTime_Buf.year & 0x03) == 0)
-                            date_size = 29;
-                        else
-                            date_size = 28;
-                        break;
-
-                    default:
-                        break;
-                    }
-                    if (++RunningTime_Buf.date > date_size)
-                    {
-                        RunningTime_Buf.date = 1;
-                        if (++RunningTime_Buf.month > 12)
-                        {
-                            RunningTime_Buf.month = 1;
-                            if (++RunningTime_Buf.year >= 100)
-                                RunningTime_Buf.year = 0;
-                        }
-                    }
-                }
+              RunningTime_Buf.month = 1;
+              if (++RunningTime_Buf.year >= 100)
+                RunningTime_Buf.year = 0;
             }
+          }
         }
+      }
     }
+  }
 }

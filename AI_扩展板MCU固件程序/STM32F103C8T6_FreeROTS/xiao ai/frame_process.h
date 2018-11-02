@@ -1,7 +1,6 @@
 #ifndef FRAME_PROCESS_H
 #define FRAME_PROCESS_H
 
-
 //#include "peri_includes.h"
 //#include <stdlib.h>
 
@@ -13,13 +12,11 @@
 #include "rsa.h"
 #include "deviceInfo.h"
 #ifdef Use_Rout
-  #include "rout.h"
+#include "rout.h"
 #endif
 
 //用串口烧公钥则定义，程序内定义则注释
-//#define USE_USAT_RSAKey 
-
-
+//#define USE_USAT_RSAKey
 
 //////////////////////// 宏定义 //////////////////////////////////
 /*************** *************** 版本管理与记录 ****************************************/
@@ -46,126 +43,97 @@ Rev_0218  修复无线通信时MCU不响应中断，接收会终止的bug，更改TX的发送流程    2018
 Rev_0301  使用STM32F103C8T6 功能延续前一版本
 */
 
-#define Version_Number                      0x0302
-
-
-
-
+#define Version_Number 0x0302
 
 /***********************************************************************/
-#define Devece_Attrs          1           //本体为1， 节点为0
+#define Devece_Attrs 1 //本体为1， 节点为0
 
-#ifdef Use_74dcode                         //带上了74编码方式
+#ifdef Use_74dcode //带上了74编码方式
 #include "74.h"
 #endif
 
-#if(Devece_Attrs)
-  #define Frame_RetryTimes                   2000      //单位为mS  
+#if (Devece_Attrs)
+#define Frame_RetryTimes 2000 //单位为mS
 #else
-  #define Frame_RetryTimes                   500      //单位为mS
+#define Frame_RetryTimes 500 //单位为mS
 #endif
 
-
-
-
-
-
-#define LED_MODE1                           0x10
-#define LED_MODE2                           0x20
-#define LED_MODE3                           0x30
-#define LED_MODE4                           0x40
-
+#define LED_MODE1 0x10
+#define LED_MODE2 0x20
+#define LED_MODE3 0x30
+#define LED_MODE4 0x40
 
 //错误字
-#define Key_NotReady                        0x53           //密钥未就绪
-#define LANG_Addr_Error                     0x54           //转发的数据，群组地址错误
+#define Key_NotReady 0x53    //密钥未就绪
+#define LANG_Addr_Error 0x54 //转发的数据，群组地址错误
 
-#define Cipher_Error                        0X04           //
-#define Parameter_Error                     0x05           //群组地址或密文不一样
-#define Format_Error                        0X06           //AES格式错误
-#define Data_Error                          0X07           //群组地址不一样
+#define Cipher_Error 0X04    //
+#define Parameter_Error 0x05 //群组地址或密文不一样
+#define Format_Error 0X06    //AES格式错误
+#define Data_Error 0X07      //群组地址不一样
 
-#define FrameFunction_Exist                 0x57           //帧功能已存在
+#define FrameFunction_Exist 0x57 //帧功能已存在
 
-
-
-
-#define Secret_Key_Yes                      0x66
-
-
+#define Secret_Key_Yes 0x66
 
 ///////////////////////////////////////////////////////////////////////
 //主动上报帧
-#define Local_UpReportCmd                   0x88           //本地上报帧
-#define Remote_UpReportCmd                  0x98           //节点上报帧
+#define Local_UpReportCmd 0x88  //本地上报帧
+#define Remote_UpReportCmd 0x98 //节点上报帧
 
 //接收到的帧用0X98位与来判断
-#define Local_CmdFrame                      0x00      //本地命令帧
-#define Local_EventFrame                    0x08      //本地事件帧
-#define RemoteUp_CmdFrame                   0x10      //下行远程命令帧
-#define RemoteUp_EventFrame                 0x18      //下行远程事件帧
-#define RemoteDown_CmdFrame                 0x90      //上行远程命令帧
-#define RemoteDown_EventFrame               0x98      //上行远程事件帧
-
-
+#define Local_CmdFrame 0x00        //本地命令帧
+#define Local_EventFrame 0x08      //本地事件帧
+#define RemoteUp_CmdFrame 0x10     //下行远程命令帧
+#define RemoteUp_EventFrame 0x18   //下行远程事件帧
+#define RemoteDown_CmdFrame 0x90   //上行远程命令帧
+#define RemoteDown_EventFrame 0x98 //上行远程事件帧
 
 //上报事件标志(不同的位表示)
 
-#define Motor_Event                         0u    //电机工作状态结束
-#define PIR_Event                           1u    //人体感应器被检出
-#define Touch_Event                         2u    //触摸感应器被检出
-#define Floater_Event                       3u    //浮子灯位置已改变
-#define BatteryLow_Event                    8u    //工作电池低电量
-#define BatteryFull_Event                   9u    //工作电池满电量
+#define Motor_Event 0u       //电机工作状态结束
+#define PIR_Event 1u         //人体感应器被检出
+#define Touch_Event 2u       //触摸感应器被检出
+#define Floater_Event 3u     //浮子灯位置已改变
+#define BatteryLow_Event 8u  //工作电池低电量
+#define BatteryFull_Event 9u //工作电池满电量
 
-#define Key_Event                           1u    //按键事件
-#define Switch_Event                        2u    //开关事件      
+#define Key_Event 1u    //按键事件
+#define Switch_Event 2u //开关事件
 
-
-#define Retry_Buf_Size                      8      //上报BUF数量
-
-
-
-
-
+#define Retry_Buf_Size 8 //上报BUF数量
 
 //////////////////////////////////////////////////////////////////////
 typedef struct
 {
-  volatile uint8_t RetryCnt;      //不为0时，表示需要重试，并计算重试时间
+  volatile uint8_t RetryCnt; //不为0时，表示需要重试，并计算重试时间
   uint8_t Retry_SendLen;
-  uint8_t RetryBuf_Number;   //表示用到第几个空间
+  uint8_t RetryBuf_Number; //表示用到第几个空间
   uint8_t Retry_DataBuf[HKFrame_LenMax];
   uint32_t Retry_StartTime;
-}Retry_TypDef;
-
-
-
+} Retry_TypDef;
 
 typedef struct
 {
   Retry_TypDef Retry_Buf[Retry_Buf_Size];
-  uint8_t RetryBuf_Space;   //第几bit代表第几个空间，0为可用，1为已占用
+  uint8_t RetryBuf_Space; //第几bit代表第几个空间，0为可用，1为已占用
   //uint8_t FrameConfig;    //
   uint8_t Upreport_FrameSeq;
   //uint8_t FrameCmd;
   uint8_t FrameProcess_Buf[HKFrame_LenMax];
 
-}HKFrame_TypDef;
+} HKFrame_TypDef;
 
-
-
-typedef struct 
+typedef struct
 {
-	uint8_t year;
-	uint8_t month;
-	uint8_t date;
-	uint8_t hour;
-	uint8_t week;
-	uint8_t minute;
-	uint8_t second;
-}BeiJingTime_TypDef;
-
+  uint8_t year;
+  uint8_t month;
+  uint8_t date;
+  uint8_t hour;
+  uint8_t week;
+  uint8_t minute;
+  uint8_t second;
+} BeiJingTime_TypDef;
 
 /************************* 外部变量 ***************************/
 extern DevicePara_TypDef Device_ParaBuf;
@@ -176,11 +144,10 @@ extern BeiJingTime_TypDef RunningTime_Buf;
 extern uint8_t const Self_LogicAddr[4];
 /************************* 外部函数 ***************************/
 
+uint8_t FrameData_Detect(uint8_t *p, uint8_t len); //指定数据的起始地址对数据检查
+uint8_t RealData_Detect(uint8_t *p, uint8_t len, uint8_t Frame_len);
 
-uint8_t FrameData_Detect(uint8_t *p, uint8_t len);   //指定数据的起始地址对数据检查
-uint8_t RealData_Detect(uint8_t *p, uint8_t len,uint8_t Frame_len);
-
-uint8_t Frame_Check(uint8_t *p,uint8_t Len);
+uint8_t Frame_Check(uint8_t *p, uint8_t Len);
 uint8_t Frame_Compose(uint8_t *p);
 uint8_t MACRead_Process(uint8_t *p_buf);
 void Frame_Process(uint8_t *p_source, uint8_t len, HKFrame_TypDef *p_framebuf, DevicePara_TypDef *p_fashionpara);
@@ -191,21 +158,9 @@ void Retransmission_Process(HKFrame_TypDef *p_framebuf);
 void Rsa_Decode(uint8_t *p_minw);
 void RemoteDown_EventFrame_Process(uint8_t *p_source, uint8_t len, HKFrame_TypDef *p_framebuf);
 void RemoteDown_CmdFrame_Process(uint8_t *p_source, uint8_t len);
-void FrameData_74Convert(FRAME_CMD_t *srcData,uint8_t srcLen,uint8_t *outLen,uint8_t mode);
-
-
+void FrameData_74Convert(FRAME_CMD_t *srcData, uint8_t srcLen, uint8_t *outLen, uint8_t mode);
 
 #endif
-
-
-
-
-
-
-
-
-
-
 
 /***********************
 帧结构：
@@ -218,7 +173,6 @@ void FrameData_74Convert(FRAME_CMD_t *srcData,uint8_t srcLen,uint8_t *outLen,uin
 校验：                2
 尾：                  1
 ***********************/
-
 
 /************************
 控制命令数据单元结构：（从机才用）
@@ -253,81 +207,70 @@ void FrameData_74Convert(FRAME_CMD_t *srcData,uint8_t srcLen,uint8_t *outLen,uin
 */
 
 ////////////////////////////////协议帧的宏定义/////////////////////////////////////////////////
-#define HKFreamHeader                               0xAC
-#define HKFreamEnd                                  0x53
+#define HKFreamHeader 0xAC
+#define HKFreamEnd 0x53
 //#define Transpond_Data_Main                         0x10
 //#define Transpond_Data_Slave                        0x90
 
-
-
 //#define Up_TimeOut_Val                              9     //250Byte约62.5ms
 
-
 //HK各命令帧长度
-#define LogicAddr_Len                               4
-#define FrameCs_Len                                 2
+#define LogicAddr_Len 4
+#define FrameCs_Len 2
 
-#define HKData_LenMax                               228          //数据标识4+数据8MAX, 现在是逻辑地址帧（）
-#define HKFrame_LenMax                              (11+HKData_LenMax+16)     //头1+地址4+配置序号1+控制码1+数据长度1 +校验2+尾1+加密预留空间
-#define UpDate_Len                                  100
+#define HKData_LenMax 228                        //数据标识4+数据8MAX, 现在是逻辑地址帧（）
+#define HKFrame_LenMax (11 + HKData_LenMax + 16) //头1+地址4+配置序号1+控制码1+数据长度1 +校验2+尾1+加密预留空间
+#define UpDate_Len 100
 
 //帧各个域的访问定位
-#define Region_HeaderNumber                 0          //帧头
-#define Region_AddrNumber                   1          //帧地址
-#define Region_SeqNumber                    5          //帧配置序号
-#define Region_CmdNumber                    6          //帧命令
-#define Region_DataLenNumber                7          //帧数据长度
-#define Region_DataAFNNumber                8          //帧数据AFN
-#define Region_DataIDNumber                 9          //帧数据标识
-#define Region_DataValNumber                12          //信息字标识
-
-
-
+#define Region_HeaderNumber 0   //帧头
+#define Region_AddrNumber 1     //帧地址
+#define Region_SeqNumber 5      //帧配置序号
+#define Region_CmdNumber 6      //帧命令
+#define Region_DataLenNumber 7  //帧数据长度
+#define Region_DataAFNNumber 8  //帧数据AFN
+#define Region_DataIDNumber 9   //帧数据标识
+#define Region_DataValNumber 12 //信息字标识
 
 //AES帧格式
-#define AESFreamHeader                            0x68
+#define AESFreamHeader 0x68
 
-#define MACWrite_Cmd_Request                      0x20 
-#define MACWrite_Yes_Response                     0x21
-#define MACWrite_NO_Response                      0x22
+#define MACWrite_Cmd_Request 0x20
+#define MACWrite_Yes_Response 0x21
+#define MACWrite_NO_Response 0x22
 
-#define MACRead_Cmd_Request                      0x30 
-#define MACRead_Yes_Response                     0x31
-#define MACRead_NO_Response                      0x32
+#define MACRead_Cmd_Request 0x30
+#define MACRead_Yes_Response 0x31
+#define MACRead_NO_Response 0x32
 
-#define Encode_Cmd_Request                        0xC0
-#define Encode_Yes_Response                       0x41
-#define Encode_No_Response                        0x42
+#define Encode_Cmd_Request 0xC0
+#define Encode_Yes_Response 0x41
+#define Encode_No_Response 0x42
 
-#define Decode_Cmd_Request                        0xD0
-#define Decode_Yes_Response                       0x51
-#define Decode_No_Response                        0x52
+#define Decode_Cmd_Request 0xD0
+#define Decode_Yes_Response 0x51
+#define Decode_No_Response 0x52
 
-#define GAWrite_Cmd_Request                       0xA0
-#define GAWrite_Yes_Response                      0xA1
-#define GAWrite_NO_Response                       0xA2
+#define GAWrite_Cmd_Request 0xA0
+#define GAWrite_Yes_Response 0xA1
+#define GAWrite_NO_Response 0xA2
 
-#define GKWrite_Cmd_Request                       0xB0
-#define GKWrite_Yes_Response                      0xB1
-#define GKWrite_NO_Response                       0xB2
+#define GKWrite_Cmd_Request 0xB0
+#define GKWrite_Yes_Response 0xB1
+#define GKWrite_NO_Response 0xB2
 
-#define Secret_Key_Yes           									0x66
+#define Secret_Key_Yes 0x66
 
-#define None_GA_Key                               0xAE
-#define None_GK_Key                               0xBE
-#define None_GAK_Key                              0xCE
-
+#define None_GA_Key 0xAE
+#define None_GK_Key 0xBE
+#define None_GAK_Key 0xCE
 
 //AES各命令帧长度
-#define MAC_Data_Len                               8
+#define MAC_Data_Len 8
 
 //#define GK_Data_Len                               13
-#define GK_Data_Len                              (16*2)
-#define GA_Data_Len                               3
+#define GK_Data_Len (16 * 2)
+#define GA_Data_Len 3
 
-#define AesData_LenMax                            16
-#define AesFrame_LenMax                           (5+AesData_LenMax)  //头1+控制码1+数据长度1 +校验2
-
-
-
-
+#define AesData_LenMax 16
+#define AesFrame_LenMax (5 + AesData_LenMax) //头1+控制码1+数据长度1 +校验2

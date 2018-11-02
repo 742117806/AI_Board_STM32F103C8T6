@@ -97,27 +97,28 @@
 /* #define USE_FULL_ASSERT    1U */
 
 /* USER CODE BEGIN Private defines */
-#define LEDR_ON()  	HAL_GPIO_WritePin(LEDR_GPIO_Port, LEDR_Pin, GPIO_PIN_SET)
-#define LEDR_OFF() 	HAL_GPIO_WritePin(LEDR_GPIO_Port, LEDR_Pin, GPIO_PIN_RESET)
-#define LEDR_TOGGLE() 	HAL_GPIO_TogglePin(LEDR_GPIO_Port, LEDR_Pin)
-#define LEDR_INVERSE()  HAL_GPIO_TogglePin(LEDR_GPIO_Port, LEDR_Pin)
-#define LEDG_ON()  	HAL_GPIO_WritePin(LEDG_GPIO_Port, LEDG_Pin, GPIO_PIN_SET)
-#define LEDG_OFF() 	HAL_GPIO_WritePin(LEDG_GPIO_Port, LEDG_Pin, GPIO_PIN_RESET)
-#define LEDG_TOGGLE() 	HAL_GPIO_TogglePin(LEDG_GPIO_Port, LEDG_Pin)
-#define LEDG_INVERSE()  HAL_GPIO_TogglePin(LEDG_GPIO_Port, LEDG_Pin)
+#define LEDR_ON() HAL_GPIO_WritePin(LEDR_GPIO_Port, LEDR_Pin, GPIO_PIN_SET)
+#define LEDR_OFF() HAL_GPIO_WritePin(LEDR_GPIO_Port, LEDR_Pin, GPIO_PIN_RESET)
+#define LEDR_TOGGLE() HAL_GPIO_TogglePin(LEDR_GPIO_Port, LEDR_Pin)
+#define LEDR_INVERSE() HAL_GPIO_TogglePin(LEDR_GPIO_Port, LEDR_Pin)
+#define LEDG_ON() HAL_GPIO_WritePin(LEDG_GPIO_Port, LEDG_Pin, GPIO_PIN_SET)
+#define LEDG_OFF() HAL_GPIO_WritePin(LEDG_GPIO_Port, LEDG_Pin, GPIO_PIN_RESET)
+#define LEDG_TOGGLE() HAL_GPIO_TogglePin(LEDG_GPIO_Port, LEDG_Pin)
+#define LEDG_INVERSE() HAL_GPIO_TogglePin(LEDG_GPIO_Port, LEDG_Pin)
 
 #define Touch1_RDPIN() HAL_GPIO_ReadPin(TOUCH1_GPIO_Port, TOUCH1_Pin)
 #define Touch2_RDPIN() HAL_GPIO_ReadPin(TOUCH2_GPIO_Port, TOUCH2_Pin)
 #define Touch3_RDPIN() HAL_GPIO_ReadPin(TOUCH3_GPIO_Port, TOUCH3_Pin)
 #define Touch4_RDPIN() HAL_GPIO_ReadPin(TOUCH4_GPIO_Port, TOUCH4_Pin)
 
-#define NIRQ_RDPIN()	HAL_GPIO_ReadPin(SI4438_nIRQ_GPIO_Port, SI4438_nIRQ_Pin)	
+#define NIRQ_RDPIN() HAL_GPIO_ReadPin(SI4438_nIRQ_GPIO_Port, SI4438_nIRQ_Pin)
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus
- extern "C" {
+extern "C"
+{
 #endif
-void _Error_Handler(char *, int);
+  void _Error_Handler(char *, int);
 
 #define Error_Handler() _Error_Handler(__FILE__, __LINE__)
 #ifdef __cplusplus

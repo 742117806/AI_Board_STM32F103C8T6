@@ -198,8 +198,8 @@ void PowerOn_Led(void)
 {
     //Fashion_ParaBuf.Led4_CotrolPara = 0x43;
     //LED_SetALed(4, Purple, 63);
-    LED_SetDuty(Purple, 63);
-    LED_SetALed(4, Purple, 63);
+    LED_SetDuty(Purple, Alwayslight_Brightness);
+    LED_SetALed(4, Purple, Alwayslight_Brightness);
     SysDelay_Xms(2000);
 
     LED_Clear(0);
@@ -209,8 +209,8 @@ void TouchLED_ALL(uint8_t flag)
 {
 	if(flag == 1)
 	{
-		LED_SetDuty(Purple, 63);
-		LED_SetALed(4, Purple, 63);
+		LED_SetDuty(Purple, Alwayslight_Brightness);
+		LED_SetALed(4, Purple, Alwayslight_Brightness);
 	}
 	else
 	{
@@ -258,7 +258,7 @@ void UpCom_Process(UpCom_Rx_TypDef *prx_ubuf, DevicePara_TypDef *p_device)
         {
             // UpCom_RXINT_EN();
         }
-		prx_ubuf->Rx_Status = UartRx_FrameHead;     //再次进入串口中断接收状态
+		
     }
 }
 
@@ -487,8 +487,8 @@ void Led_Process(DevicePara_TypDef *p_device, Led_Color_TypeDef colour)
         p_device->Touch_State &= ~0x10;
         p_device->Led_Cotrol_DisFlag |= 0x01;
         LED_Clear(1);
-        LED_SetALed(0, colour, 20);
-        LED_SetALed(1, colour, 20);
+        LED_SetALed(0, colour, Alwayslight_Brightness);
+        LED_SetALed(1, colour, Alwayslight_Brightness);
     }
     else if ((p_device->Touch_State & 0x01) == 0x01)
     {
@@ -503,8 +503,8 @@ void Led_Process(DevicePara_TypDef *p_device, Led_Color_TypeDef colour)
         p_device->Touch_State &= ~0x20;
         p_device->Led_Cotrol_DisFlag |= 0x02;
         LED_Clear(1);
-        LED_SetALed(2, colour, 20);
-        LED_SetALed(3, colour, 20);
+        LED_SetALed(2, colour, SN3218_PWM_DUTY);
+        LED_SetALed(3, colour, SN3218_PWM_DUTY);
     }
     else if ((p_device->Touch_State & 0x02) == 0x02)
     {
@@ -519,8 +519,8 @@ void Led_Process(DevicePara_TypDef *p_device, Led_Color_TypeDef colour)
         p_device->Touch_State &= ~0x40;
         p_device->Led_Cotrol_DisFlag |= 0x04;
         LED_Clear(1);
-        LED_SetALed(5, colour, 20);
-        LED_SetALed(6, colour, 20);
+        LED_SetALed(5, colour, Alwayslight_Brightness);
+        LED_SetALed(6, colour, Alwayslight_Brightness);
     }
     else if ((p_device->Touch_State & 0x04) == 0x04)
     {
@@ -535,8 +535,8 @@ void Led_Process(DevicePara_TypDef *p_device, Led_Color_TypeDef colour)
         p_device->Touch_State &= ~0x80;
         p_device->Led_Cotrol_DisFlag |= 0x08;
         LED_Clear(1);
-        LED_SetALed(7, colour, 20);
-        LED_SetALed(8, colour, 20);
+        LED_SetALed(7, colour, SN3218_PWM_DUTY);
+        LED_SetALed(8, colour, SN3218_PWM_DUTY);
     }
     else if ((p_device->Touch_State & 0x08) == 0x08)
     {
@@ -853,8 +853,11 @@ int main(void)
 
         WireLess_Process(&Wireless_Buf, &Device_ParaBuf);
         UpCom_Process(&UpCom_RxBuf, &Device_ParaBuf);
-
         RxData_Process(&HKFrame_Buf, &Device_ParaBuf);
+		if(UpCom_RxBuf.Rx_Status == UartRx_Finished)
+		{
+			UpCom_RxBuf.Rx_Status = UartRx_FrameHead;     //再次进入串口中断接收状态
+		}
         Touch_Process(&Device_ParaBuf);
         if (UpCom_TxBuf.Tx_Status == UartTx_Finished)
         {
