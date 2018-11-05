@@ -661,23 +661,23 @@ uint8_t DeviceVsnJudge(uint8_t des_device,uint8_t *device_buff,uint8_t device_nu
 
 
 //清除不在设备列表中的多余设备地址
-void OldDeviceRef(OldDevice_t *p_OldDevice)
+void OldDeviceRef(OldDevice_t *p_OldDevice,uint8_t *deviceBuff)
 {
 
 	uint8_t i,j;
-	for(i=0;i<p_OldDevice->num;i++)
+
+	for(j=0;j<p_OldDevice->num;j++)
 	{
-		for(j=0;j<deviceNum;j++)
+		for(i=0;i<deviceNum;i++)
 		{
-		
-			if(p_OldDevice->buff[i]==deviceBuff[i])
+			if(p_OldDevice->buff[j] == deviceBuff[i])
 			{
-				continue;
+				break;
 			}
 		}
-		if(j==deviceNum)
+		if(i == deviceNum)
 		{
-			memcpy(&p_OldDevice->buff[i],&p_OldDevice->buff[i+1],p_OldDevice->num-i);
+			memcpy(&p_OldDevice->buff[j],&p_OldDevice->buff[j+1],p_OldDevice->num-j);
 			p_OldDevice->num--;
 		}
 	}
@@ -714,7 +714,7 @@ void Local_CmdProcess(FRAME_CMD_t *frameCmd)
       memcpy(deviceBuff, frameCmd->userData.content, deviceNum);
       xTaskResumeAll(); //关闭任务调度锁
       
-			OldDeviceRef(&lodDevice);
+			OldDeviceRef(&lodDevice,deviceBuff);
 			
       FrameCmdLocalAck(frameCmd, 0, 0);
       break;
@@ -1097,7 +1097,7 @@ int main(void)
   //uint8_t len;
   //uint8_t mac[8]={0x03,0x00,0x01,0x02,0x03,0x04,0x05,0x06};
   //uint8_t test_temp[256]={0x69,0x69,0x14,0xEB,0x81,0x2A,0x5B,0x00,0x00,0x14,0x85,0x0F,0x00,0xAC,0x89,0x00,0x05,0x2B,0x05,0x65,0x2E,0xCC,0x96,0x96};
-  /* USER CODE END 1 */
+	/* USER CODE END 1 */
 
   /* MCU Configuration----------------------------------------------------------*/
 
