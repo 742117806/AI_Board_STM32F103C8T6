@@ -40,6 +40,7 @@ osThreadId WirelessTaskHandle;
 osThreadId SuperviseTaskHandle;
 osThreadId RetryTaskHandle; //等待应答重新发起命令的任务
 osThreadId NetCreateTaskHandle;
+osThreadId IWDG_TaskHandle; //等待应答重新发起命令的任务
 
 /* 邮箱句柄 */
 QueueHandle_t xQueueWirelessTask = NULL;
@@ -53,6 +54,9 @@ QueueHandle_t xQueueWirelessRetryTask = NULL;
 /* 互斥信号量句柄 */
 //SemaphoreHandle_t xSemaphore_wireless = NULL;
 SemaphoreHandle_t xSemaphore_uartTx = NULL;
+
+/* 直接标志组句柄 */
+EventGroupHandle_t xIWDG_EventGroup;
 
 uint8_t currentFrameNum = 0; //当前的接收到上层的帧序号
 
@@ -96,9 +100,9 @@ void DeviceReNet(uint8_t des_addr) //设备重新配网
 *  返 回 值: 无 
 ********************************************************************************************************* 
 */
-extern uint8_t deviceBuff[224];
+//extern uint8_t deviceBuff[224];
 extern DES_DEVICE_t desDevice[224];
-extern uint8_t deviceNum;
+//extern uint8_t deviceNum;
 void AppSuperviseTask(void const *argument)
 {
   //	unsigned portBASE_TYPE uxHighWaterMark;
@@ -113,28 +117,27 @@ void AppSuperviseTask(void const *argument)
 
   for (;;)
   {
-    //System_8msTick_Process();
-    osDelay(10000);
-
-    for (j = 0; j < deviceNum; j++)
+    osDelay(30000);
+    for (j = 0; j < deviceInfo.deviceNum; j++)
     {
       userTemp[0] = 0;
-      routerLen = desDevice[deviceBuff[j] - DEVICE_INDEX_OFFSET].path1.len;
+      routerLen = desDevice[deviceInfo.deviceBuff[j] - DEVICE_INDEX_OFFSET].path1.len;
       if (routerLen > 0)
       {
+			
         for (i = 0; i < routerLen; i++)
         {
-          routerTab[i] = desDevice[deviceBuff[j] - DEVICE_INDEX_OFFSET].path1.addr[i];
+          routerTab[i] = desDevice[deviceInfo.deviceBuff[j] - DEVICE_INDEX_OFFSET].path1.addr[i];
         }
       }
-      queue_wireless.len = FrameRouterHeart(deviceBuff[j], userTemp, 1, queue_wireless.msg, routerTab, routerLen);
+      queue_wireless.len = FrameRouterHeart(deviceInfo.deviceBuff[j], userTemp, 1, queue_wireless.msg, routerTab, routerLen);
       queue_wireless.toCh = Wireless_Channel[0];
       xQueueSend(xQueueWirelessTask, &queue_wireless, (TickType_t)100);
 
       xResult = xTaskNotifyWait(0x00000000, 0xFFFFFFFF, &ulValue, (TickType_t)1000); //等待回应
       if (xResult == pdPASS)                                                         /* 成功接收 */
       {
-        if (ulValue == deviceBuff[j])
+        if (ulValue == deviceInfo.deviceBuff[j])
         {
           //printf("111");
           retry_cnt = 0; //清除计数
@@ -155,18 +158,18 @@ void AppSuperviseTask(void const *argument)
 
           userTemp[0] = 0;
           routerLen = 1;
-          for (i = 0; i < deviceNum; i++)
+          for (i = 0; i < deviceInfo.deviceNum; i++)
           {
-            if (deviceBuff[j + 1] == deviceBuff[i])
+            if (deviceInfo.deviceBuff[j + 1] == deviceInfo.deviceBuff[i])
               continue;
-            routerTab[0] = deviceBuff[i];
-            queue_wireless.len = FrameRouterHeart(deviceBuff[j + 1], userTemp, 1, queue_wireless.msg, routerTab, routerLen);
+            routerTab[0] = deviceInfo.deviceBuff[i];
+            queue_wireless.len = FrameRouterHeart(deviceInfo.deviceBuff[j + 1], userTemp, 1, queue_wireless.msg, routerTab, routerLen);
             queue_wireless.toCh = Wireless_Channel[0];
             xQueueSend(xQueueWirelessTask, &queue_wireless, (TickType_t)100);
             xResult = xTaskNotifyWait(0x00000000, 0xFFFFFFFF, &ulValue, (TickType_t)1000); //等待回应
             if (xResult == pdPASS)                                                         /* 成功接收 */
             {
-              if (ulValue == deviceBuff[j + 1]) //收到应答
+              if (ulValue == deviceInfo.deviceBuff[j + 1]) //收到应答
               {
                 //printf("4444");
                 break;
@@ -208,10 +211,11 @@ uint8_t deviceAckLen = 0;
 
 void AppUartTask(void const *argument)
 {
-
+ 
   for (;;)
   {
     UartRx_Process(&UpCom_RxBuf, &Device_ParaBuf);
+		xEventGroupSetBits(xIWDG_EventGroup, IWDG_EventGroup_BIT0); 
     osDelay(8);
   }
 }
@@ -306,9 +310,7 @@ void AppLedTask(void const *argument)
 
       break;
     case 4: //中间灯点亮
-      //LED_CentreOn();
-
-      LED_LightCtrl(LED_CENTRE_MAP_BITS, 255);
+      LED_LightCtrl(LED_CENTRE_MAP_BITS, LED_CENTRE_LIGHT_VALUE);
       break;
     case 5:
       LED_AroundVolIndex(vol);
@@ -335,7 +337,7 @@ void AppLedTask(void const *argument)
 
       break;
     }
-
+    xEventGroupSetBits(xIWDG_EventGroup, IWDG_EventGroup_BIT1); 
     osDelay(1);
   }
 }
@@ -356,15 +358,7 @@ void AppTouchTask(void const *argument)
 
   for (;;)
   {
-    //        if(KEY1==0)
-    //		{
-    //			printf("\r\nKEY1 == 0");
-    //		}
-    //
-    //		if(KEY3 == 0)
-    //		{
-    //			printf("\r\nKEY3 == 0");
-    //		}
+
     keyValue = TouchKeyScan(0);
 
     if (keyValue > 0)
@@ -376,7 +370,6 @@ void AppTouchTask(void const *argument)
         xTaskNotify(LedTaskHandle, LED_TASK_EVNT_KEY1_DN, eSetValueWithOverwrite);
         break;
       case KEY2_PRES:
-        //xQueueSend(xQueueKeyVal, &keyValue, (TickType_t)5);
         KeyUpReportCmd(keyValue & 0x0f, (keyValue & 0xf0) >> 4); //通过串口发送按键事件帧
         break;
       case KEY3_PRES:
@@ -384,24 +377,20 @@ void AppTouchTask(void const *argument)
 
         break;
       case KEY4_PRES:
-        //xQueueSend(xQueueKeyVal, &keyValue, (TickType_t)5);
         KeyUpReportCmd(keyValue & 0x0f, (keyValue & 0xf0) >> 4); //通过串口发送按键事件帧
         break;
       case KEY1_LONG_PRES:
         xTaskNotify(LedTaskHandle, LED_TASK_EVNT_KEY1_DN_L, eSetValueWithOverwrite);
-        //xQueueSend(xQueueKeyVal, &keyValue, (TickType_t)5);
         KeyUpReportCmd(keyLast & 0x0f, (keyValue & 0xf0) >> 4); //通过串口发送按键事件帧
         break;
       case KEY_UP:
         if (keyLast == KEY1_PRES)
         {
-          //xQueueSend(xQueueKeyVal, &keyLast, (TickType_t)5);
           xTaskNotify(LedTaskHandle, LED_TASK_EVNT_KEY1_UP, eSetValueWithOverwrite);
           KeyUpReportCmd(keyLast & 0x0f, (keyLast & 0xf0) >> 4); //通过串口发送按键事件帧
         }
         else if (keyLast == KEY3_PRES)
         {
-          //xQueueSend(xQueueKeyVal, &keyLast, (TickType_t)5);
           xTaskNotify(LedTaskHandle, LED_TASK_EVNT_KEY3_UP, eSetValueWithOverwrite);
           KeyUpReportCmd(keyLast & 0x0f, (keyLast & 0xf0) >> 4); //通过串口发送按键事件帧
         }
@@ -417,7 +406,7 @@ void AppTouchTask(void const *argument)
       }
       keyLast = keyValue; //更新上次值
     }
-
+    xEventGroupSetBits(xIWDG_EventGroup, IWDG_EventGroup_BIT2); 
     osDelay(10);
   }
 }
@@ -437,64 +426,93 @@ void AppWirelessTask(void const *argument)
   BaseType_t xResult;
   QUEUE_WIRELESS_SEND_t queueUartMsg;
 
-  static uint8_t Wireless_ErrCnt = 0;
 
   for (;;)
   {
-
+//    memset(&queueUartMsg,0x00,sizeof(QUEUE_WIRELESS_SEND_t)) ;
     xResult = xQueueReceive(xQueueWirelessTask,    /* 消息队列句柄 */
                             (void *)&queueUartMsg, /* 存储接收到的数据到变量queueUartMsg */
                             (TickType_t)5);        /* 设置阻塞时间5个tick */
 
     if (xResult == pdPASS) /* 成功接收，并通过串口将数据打印出来 */
     {
-			//osDelay(300);
+			osDelay(50);
+			if((queueUartMsg.msg[0]==0x69)&&(queueUartMsg.msg[1]==0x69))
+			{
+				if(queueUartMsg.msg[2]<70)
+				{
+					FrameRouteData_74Convert((FRAME_ROUTER_CMD_t*)queueUartMsg.msg,queueUartMsg.len,&queueUartMsg.len,1);
+				}
+			}
       Si4438_Transmit_Start(&Wireless_Buf, queueUartMsg.toCh, queueUartMsg.msg, queueUartMsg.len);
     }
 
     //		Si4438_Transmit_Start(&Wireless_Buf, Default_Channel, "Test Wireless Data", strlen("Test Wireless Data"));
     //      osDelay(1000);
+		if (WIRELESS_STATUS == Wireless_RX_Finish)
+		{
+			WireLess_Process(&Wireless_Buf, &Device_ParaBuf);
+			if(WIRELESS_STATUS == Wireless_RX_Finish)
+			{
+				Si4438_Receive_Start(Wireless_Channel[0]); //开始接收无线数据
+			}
+		}
+		if (WIRELESS_STATUS == Wireless_TX_Finish)
+		{
+			DEBUG_Printf("Wireless_TX_Finish\r\n");
+			 WIRELESS_STATUS = Wireless_Free;
+			Si4438_Receive_Start(Wireless_Channel[0]); //开始接收无线数据
+		}
+		else if (WIRELESS_STATUS == Wireless_RX_Failure)
+		{
+			//WirelessRx_Timeout_Cnt = 0;
+			delay_ms(200);
+			Si4438_Receive_Start(Wireless_Channel[0]); //开始接收无线数据
+		}
+	
 
-    if (WIRELESS_STATUS == Wireless_RX_Finish) //Receive Finish
-    {
 
-      //UartSendBytes(USART1,Wireless_Buf.Wireless_RxData,Wireless_Buf.Wireless_PacketLength);
-      //printf("Wireless_RX_Finish");
-      WIRELESS_STATUS = Wireless_Free;
-      Wireless_ErrCnt = 0;
-      WireLess_Process(&Wireless_Buf, &Device_ParaBuf);
-    }
-    else if (WIRELESS_ERROR_CODE == Wireless_CmdResponseError)
-    {
-      WIRELESS_ERROR_CODE = Wireless_NoError;
-      /*Si4438_Receive_Start(Wireless_Channel[0]);   //Start Receive*/
-      if (++Wireless_ErrCnt > 10)
-        WIRELESS_ERROR_CODE = Wireless_InitError;
-    }
+//    if (WIRELESS_STATUS == Wireless_RX_Finish) //Receive Finish
+//    {
 
-    if (WIRELESS_ERROR_CODE == Wireless_ExecuteError) //Channel Busy
-    {
-      WIRELESS_STATUS = Wireless_Free;
+//      //UartSendBytes(USART1,Wireless_Buf.Wireless_RxData,Wireless_Buf.Wireless_PacketLength);
+//      //printf("Wireless_RX_Finish");
+//      WIRELESS_STATUS = Wireless_Free;
+//      Wireless_ErrCnt = 0;
+//      WireLess_Process(&Wireless_Buf, &Device_ParaBuf);
+//    }
+//    else if (WIRELESS_ERROR_CODE == Wireless_CmdResponseError)
+//    {
+//      WIRELESS_ERROR_CODE = Wireless_NoError;
+//      /*Si4438_Receive_Start(Wireless_Channel[0]);   //Start Receive*/
+//      if (++Wireless_ErrCnt > 10)
+//        WIRELESS_ERROR_CODE = Wireless_InitError;
+//    }
 
-      Si4438_Receive_Start(Wireless_Channel[0]); //Start Receive
-    }
+//    if (WIRELESS_ERROR_CODE == Wireless_ExecuteError) //Channel Busy
+//    {
+//      WIRELESS_STATUS = Wireless_Free;
 
-    if (WIRELESS_STATUS == Wireless_TX_Finish)
-    {
-      WIRELESS_STATUS = Wireless_Free;
-      Wireless_ErrCnt = 0;
-      //LEDR_INVERSE();
-      Si4438_Receive_Start(Wireless_Channel[0]); //Start Receive
-    }
+//      Si4438_Receive_Start(Wireless_Channel[0]); //Start Receive
+//    }
 
-    else if (WIRELESS_STATUS == Wireless_RX_Failure)
-    {
-      WIRELESS_STATUS = Wireless_Free;
-      Wireless_ErrCnt = 0;
-      Res_FifoInfo(RESET_RECEIVE);
-      //Si4438_Receive_Start(Wireless_Channel[0]);         //Start Receive
-    }
+//    if (WIRELESS_STATUS == Wireless_TX_Finish)
+//    {
+//      WIRELESS_STATUS = Wireless_Free;
+//      Wireless_ErrCnt = 0;
+//      //LEDR_INVERSE();
+//      Si4438_Receive_Start(Wireless_Channel[0]); //Start Receive
+//    }
 
+//    else if (WIRELESS_STATUS == Wireless_RX_Failure)
+//    {
+//      WIRELESS_STATUS = Wireless_Free;
+//      Wireless_ErrCnt = 0;
+//      Res_FifoInfo(RESET_RECEIVE);
+//      //Si4438_Receive_Start(Wireless_Channel[0]);         //Start Receive
+//    }
+
+    xEventGroupSetBits(xIWDG_EventGroup, IWDG_EventGroup_BIT3); 
     osDelay(1);
   }
 }
@@ -552,11 +570,9 @@ void AppNetCreateTask(void const *argument)
 
   uint32_t ulValue;
   uint8_t i, j;
-  extern uint8_t deviceBuff[224];
-  extern uint8_t deviceNum;
+
   uint8_t routerTab[3];
-  uint8_t routerLen;
-	uint8_t flag1 = 1;		
+  uint8_t routerLen;	
 
   FRAME_CMD_t *userFrame;
   BaseType_t xResult;
@@ -568,92 +584,80 @@ void AppNetCreateTask(void const *argument)
   {
     xResult = xQueueReceive(xQueueNetCreateTask, &pxQueueTemp, portMAX_DELAY);
     if (xResult == pdPASS) /* 成功接收 */
-    {
-
-			
-			//if(flag1 == 1)
+		{
+			userFrame = (FRAME_CMD_t *)&pxQueueTemp.Frame_Data;
+			JOINE_NET_CMD_t *joine_cmd = (JOINE_NET_CMD_t *)userFrame->userData.content;
+			if (p_ack->addr_DA == userFrame->addr_DA)
 			{
-				userFrame = (FRAME_CMD_t *)&pxQueueTemp.Frame_Data;
-				JOINE_NET_CMD_t *joine_cmd = (JOINE_NET_CMD_t *)userFrame->userData.content;
-				if (p_ack->addr_DA == userFrame->addr_DA)
+				p_ack->FSQ.frameNum = currentFrameNum;
+				deviceAckLen = Frame_Compose((uint8_t *)p_ack);
+				UpUart_DataTx(deviceAckBuff, deviceAckLen, 0);
+			}
+			else
+			{
+				//直接配网，没有经过中继设备
+				for (i = 0; i < 3; i++)
 				{
-					p_ack->FSQ.frameNum = currentFrameNum;
-					deviceAckLen = Frame_Compose((uint8_t *)p_ack);
-					UpUart_DataTx(deviceAckBuff, deviceAckLen, 0);
-				}
-				else
-				{
-					//直接配网，没有经过中继设备
-					for (i = 0; i < 3; i++)
-					{
-						userFrame->FSQ.frameNum = currentFrameNum;
-						pxQueueTemp.FrameTotalLen = Frame_Compose((uint8_t *)pxQueueTemp.Frame_Data);
+					userFrame->FSQ.frameNum = currentFrameNum;
+					pxQueueTemp.FrameTotalLen = Frame_Compose((uint8_t *)pxQueueTemp.Frame_Data);
 
+					queue_wireless_send.len = FrameRouterCompose_ext(joine_cmd->mac,
+																													 pxQueueTemp.Frame_Data,
+																													 pxQueueTemp.FrameTotalLen,
+																													 queue_wireless_send.msg,
+																													 0,
+																													 0);
+																													 
+																													 
+					xTaskNotifyWait(0x00000000, 0xFFFFFFFF, &ulValue, 2); //先清除回应
+
+					queue_wireless_send.toCh = Default_Channel;
+					xQueueSend(xQueueWirelessTask, &queue_wireless_send, (TickType_t)10);	//发有路由的配网
+
+					xResult = xTaskNotifyWait(0x00000000, 0xFFFFFFFF, &ulValue, 800); //等待回应
+					if ((xResult == pdPASS) && (ulValue == (1ul << 1)))
+					{
+						break;
+					}
+											
+					//先用0xAC协议配网，没有路由协议
+					userFrame->FSQ.frameNum = currentFrameNum;
+					queue_wireless_send.len = pxQueueTemp.FrameTotalLen;
+					queue_wireless_send.toCh = Default_Channel;
+					
+					memcpy(queue_wireless_send.msg,pxQueueTemp.Frame_Data,pxQueueTemp.FrameTotalLen);			
+					FrameData_74Convert((FRAME_CMD_t*)queue_wireless_send.msg,pxQueueTemp.FrameTotalLen,&queue_wireless_send.len,1); //编码
+
+					xTaskNotifyWait(0x00000000, 0xFFFFFFFF, &ulValue, 2); //先清除回应
+					xQueueSend(xQueueWirelessTask, &queue_wireless_send.msg, (TickType_t)10);   //发无路由的配网，0xAC开头的
+					xResult = xTaskNotifyWait(0x00000000, 0xFFFFFFFF, &ulValue, 800); //等待回应
+					if ((xResult == pdPASS) && (ulValue == (1ul << 1)))
+					{
+						break;
+					}					
+				}
+				if (ulValue != (1ul << 1))
+				{
+
+					for (i = 0; i < deviceInfo.deviceNum; i++)
+					{
+						if (deviceInfo.deviceBuff[i] == userFrame->addr_DA)
+							continue;
+						routerTab[0] = deviceInfo.deviceBuff[i];
+
+						routerLen = 1;
 						queue_wireless_send.len = FrameRouterCompose_ext(joine_cmd->mac,
 																														 pxQueueTemp.Frame_Data,
 																														 pxQueueTemp.FrameTotalLen,
 																														 queue_wireless_send.msg,
-																														 0,
-																														 0);
-																														 
-																														 
-						xTaskNotifyWait(0x00000000, 0xFFFFFFFF, &ulValue, 2); //先清除回应
-
-						queue_wireless_send.toCh = Default_Channel;
-						xQueueSend(xQueueWirelessTask, &queue_wireless_send, (TickType_t)10);	//发有路由的配网
-
-						xResult = xTaskNotifyWait(0x00000000, 0xFFFFFFFF, &ulValue, 800); //等待回应
-						if ((xResult == pdPASS) && (ulValue == (1ul << 1)))
+																														 routerTab,
+																														 routerLen);
+						for (j = 0; j < 2; j++)
 						{
-							break;
-						}
-												
-						//先用0xAC协议配网，没有路由协议
-						userFrame->FSQ.frameNum = currentFrameNum;
-						queue_wireless_send.len = pxQueueTemp.FrameTotalLen;
-						queue_wireless_send.toCh = Default_Channel;
-						
-						memcpy(queue_wireless_send.msg,pxQueueTemp.Frame_Data,pxQueueTemp.FrameTotalLen);			
-						FrameData_74Convert((FRAME_CMD_t*)queue_wireless_send.msg,pxQueueTemp.FrameTotalLen,&queue_wireless_send.len,1); //编码
+							queue_wireless_send.toCh = Default_Channel;
+							xQueueSend(xQueueWirelessTask, &queue_wireless_send, (TickType_t)10);
 
-						xTaskNotifyWait(0x00000000, 0xFFFFFFFF, &ulValue, 2); //先清除回应
-						xQueueSend(xQueueWirelessTask, &queue_wireless_send.msg, (TickType_t)10);   //发无路由的配网，0xAC开头的
-						xResult = xTaskNotifyWait(0x00000000, 0xFFFFFFFF, &ulValue, 800); //等待回应
-						if ((xResult == pdPASS) && (ulValue == (1ul << 1)))
-						{
-							break;
-						}					
-					}
-					if (ulValue != (1ul << 1))
-					{
-
-						for (i = 0; i < deviceNum; i++)
-						{
-							if (deviceBuff[i] == userFrame->addr_DA)
-								continue;
-							routerTab[0] = deviceBuff[i];
-
-							routerLen = 1;
-							queue_wireless_send.len = FrameRouterCompose_ext(joine_cmd->mac,
-																															 pxQueueTemp.Frame_Data,
-																															 pxQueueTemp.FrameTotalLen,
-																															 queue_wireless_send.msg,
-																															 routerTab,
-																															 routerLen);
-							for (j = 0; j < 2; j++)
-							{
-								queue_wireless_send.toCh = Default_Channel;
-								xQueueSend(xQueueWirelessTask, &queue_wireless_send, (TickType_t)10);
-
-								xResult = xTaskNotifyWait(0x00000000, 0xFFFFFFFF, &ulValue, 800);
-								if (xResult == pdPASS)
-								{
-									if (ulValue == (1ul << 1))
-									{
-										break;
-									}
-								}
-							}
+							xResult = xTaskNotifyWait(0x00000000, 0xFFFFFFFF, &ulValue, 800);
 							if (xResult == pdPASS)
 							{
 								if (ulValue == (1ul << 1))
@@ -662,14 +666,45 @@ void AppNetCreateTask(void const *argument)
 								}
 							}
 						}
+						if (xResult == pdPASS)
+						{
+							if (ulValue == (1ul << 1))
+							{
+								break;
+							}
+						}
 					}
-					xQueueReceive(xQueueNetCreateTask, &pxQueueTemp, 1);
-					xQueueReceive(xQueueNetCreateTask, &pxQueueTemp, 1);
 				}
+				xQueueReceive(xQueueNetCreateTask, &pxQueueTemp, 1);
+				xQueueReceive(xQueueNetCreateTask, &pxQueueTemp, 1);
 			}
+
 		}
     osDelay(1);
   }
+}
+
+//看门狗任务
+void App_IWDG_Task(void const *argument)
+{
+	 extern IWDG_HandleTypeDef hiwdg;
+	EventBits_t uxBits;
+
+	for(;;)
+	{
+		uxBits = xEventGroupWaitBits(xIWDG_EventGroup, 	
+																	IWDG_EventGroup_BITALL, 
+																	pdTRUE, 
+																	pdTRUE, 
+																	(TickType_t)1000); 
+		if((uxBits & IWDG_EventGroup_BITALL) == IWDG_EventGroup_BITALL) 
+    { 
+    
+			HAL_IWDG_Refresh(&hiwdg);
+    }
+
+    osDelay(1);
+	}
 }
 
 /* 
@@ -682,11 +717,12 @@ void AppNetCreateTask(void const *argument)
 */
 void AppTaskCreate(void)
 {
-  xQueueWirelessTask = xQueueCreate(3, sizeof(QUEUE_WIRELESS_SEND_t)); //队列长度3个
+  xQueueWirelessTask = xQueueCreate(5, sizeof(QUEUE_WIRELESS_SEND_t)); //队列长度3个
   xQueueVol = xQueueCreate(2, sizeof(uint8_t));
   xQueueAckRouterTable = xQueueCreate(2, sizeof(ROUTER_TAB_ACK_t));
   xQueueNetCreateTask = xQueueCreate(1, sizeof(UpCom_Rx_TypDef));
   xQueueWirelessRetryTask = xQueueCreate(1, sizeof(QUEUE_WIRELESS_SEND_t));
+	
 
   /* 创建互斥信号量 */
   xSemaphore_uartTx = xSemaphoreCreateMutex();
@@ -696,9 +732,18 @@ void AppTaskCreate(void)
   osThreadDef(UartTask, AppUartTask, osPriorityNormal, 1, 256);
   osThreadDef(LedTask, AppLedTask, osPriorityNormal, 0, 128);
   osThreadDef(TouchTask, AppTouchTask, osPriorityNormal, 5, 128);
-  osThreadDef(WirelessTask, AppWirelessTask, osPriorityNormal, 6, 256);
+  osThreadDef(WirelessTask, AppWirelessTask, osPriorityNormal, 6, 512);
   osThreadDef(SuperviseTask, AppSuperviseTask, osPriorityNormal, 4, 256);
   osThreadDef(RetryTask, AppRetryTask, osPriorityNormal, 2, 128);
+	osThreadDef(IWDG_Task, App_IWDG_Task, osPriorityNormal, 7, 64);
+	
+	
+	/* 创建事件标志组 */
+  xIWDG_EventGroup = xEventGroupCreate(); 
+	if(xIWDG_EventGroup == NULL)
+	{
+		printf("xIWDG_EventGroup Create Error");
+	}
 
   NetCreateTaskHandle = osThreadCreate(osThread(NetCreateTask), NULL);
   if (NetCreateTaskHandle == NULL)
@@ -720,11 +765,15 @@ void AppTaskCreate(void)
   if (WirelessTaskHandle == NULL)
     printf("WirelessTask Create Error");
 
-//  SuperviseTaskHandle = osThreadCreate(osThread(SuperviseTask), NULL);
-//  if (SuperviseTaskHandle == NULL)
-//    printf("SuperviseTask Create Error");
+  SuperviseTaskHandle = osThreadCreate(osThread(SuperviseTask), NULL);
+  if (SuperviseTaskHandle == NULL)
+    printf("SuperviseTask Create Error");
 
   RetryTaskHandle = osThreadCreate(osThread(RetryTask), NULL);
   if (RetryTaskHandle == NULL)
     printf("RetryTask Create Error");
+		
+	IWDG_TaskHandle = osThreadCreate(osThread(IWDG_Task), NULL);
+  if (IWDG_TaskHandle == NULL)
+    printf("IWDG_Task Create Error");
 }

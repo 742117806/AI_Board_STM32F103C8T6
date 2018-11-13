@@ -35,6 +35,20 @@
 #define LED_TASK_EVNT_KEY4_UP (1ul << 7)
 #define LED_TASK_EVNT_KEY1_DN_L (1ul << 8) //KEY1长按
 
+//看门狗任务事件
+#define IWDG_EventGroup_BIT0	(1ul << 0)
+#define IWDG_EventGroup_BIT1	(1ul << 1)
+#define IWDG_EventGroup_BIT2	(1ul << 2)
+#define IWDG_EventGroup_BIT3	(1ul << 3)
+#define IWDG_EventGroup_BIT4	(1ul << 4)
+#define IWDG_EventGroup_BIT5	(1ul << 5)
+
+#define IWDG_EventGroup_BITALL	(IWDG_EventGroup_BIT0| \
+																	IWDG_EventGroup_BIT1| \
+																	IWDG_EventGroup_BIT2| \
+																	IWDG_EventGroup_BIT3)   
+
+
 extern QUEUE_WIRELESS_SEND_t retryWirelessBuff;
 extern uint8_t currentFrameNum;
 

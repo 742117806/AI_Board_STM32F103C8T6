@@ -237,6 +237,55 @@ void FrameData_74Convert(FRAME_CMD_t *srcData, uint8_t srcLen, uint8_t *outLen, 
   }
 }
 
+/****************************************************************
+**功   能：按照应用协议进行74编码(从一帧数据的用户数据区开始到帧结束符前面的数据)
+**参   数：
+        @srcData 源数据
+        @srcLen 源数据的长度（字节数）
+		@outLen	编码后一帧数据的长度
+        @mode 1编码，0解码
+**返回值:无
+****************************************************************/
+void FrameRouteData_74Convert(FRAME_ROUTER_CMD_t *srcData, uint8_t srcLen, uint8_t *outLen, uint8_t mode)
+{
+  static uint8_t frame_len;
+  uint8_t temp[256] = {0};
+  uint16_t crc16;
+  uint8_t *p_frame_data;
+	uint8_t _74ConvertLen = 0;
+
+  if (mode == 0) //解码
+  {
+		_74ConvertLen =  (srcLen - 9);
+    frame_len = _74DecodeBytes((uint8_t *)&srcData->netNum, temp, _74ConvertLen); //把编码过后加的CRC16(2个字节)去掉
+		srcData->len = frame_len +3;
+		srcData->len_c = ~srcData->len;
+		temp[frame_len] = 0x96;
+		temp[frame_len+1] = 0x96;
+		memcpy((uint8_t *)&srcData->netNum, temp, frame_len+2);
+
+
+    
+    *outLen = srcData->len + 4;
+  }
+  else //编码
+  {
+		_74ConvertLen = srcLen - 7;
+    frame_len = _74CodeBytes((uint8_t *)&srcData->netNum, temp, _74ConvertLen); //74编码
+
+    memcpy((uint8_t *)&srcData->netNum, temp, frame_len); //把编码好的数据复制回原来数据的缓存区，
+		srcData->len = frame_len+5;
+		srcData->len_c = ~srcData->len; 
+    crc16 = CRC16_2((uint8_t *)srcData, frame_len + 5);     //编码后长度+协议帧前面没编码的8个字节帧数据
+    p_frame_data = (uint8_t *)&srcData->head_h;
+    p_frame_data[srcData->len] = (crc16 >> 8);
+    p_frame_data[srcData->len+1] = (crc16 & 0x00ff);
+    p_frame_data[srcData->len + 2] = 0x96; //编码后加上帧结束0x53
+		p_frame_data[srcData->len + 3] = 0x96; //编码后加上帧结束0x53
+    *outLen = srcData->len + 4;
+  }
+}
+
 void Retry_Start(HKFrame_TypDef *p_framebuf, uint8_t *p_source, uint8_t source_len)
 {
   uint8_t i;

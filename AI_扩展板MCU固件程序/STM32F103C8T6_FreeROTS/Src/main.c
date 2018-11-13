@@ -66,6 +66,8 @@
 /* USER CODE END Includes */
 
 /* Private variables ---------------------------------------------------------*/
+IWDG_HandleTypeDef hiwdg;
+
 SPI_HandleTypeDef hspi1;
 
 TIM_HandleTypeDef htim1;
@@ -73,11 +75,13 @@ TIM_HandleTypeDef htim1;
 UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
 
+osThreadId defaultTaskHandle;
+
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
 DES_DEVICE_t desDevice[224];   //目标设备路径，224个设备
-uint8_t deviceNum = 0;         //已经配网的设备个数
-uint8_t deviceBuff[224] = {0}; //224个设备
+//uint8_t deviceNum = 0;         //已经配网的设备个数
+//uint8_t deviceBuff[224] = {0}; //224个设备
 
 /* USER CODE END PV */
 
@@ -88,7 +92,8 @@ static void MX_USART1_UART_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_SPI1_Init(void);
 static void MX_TIM1_Init(void);
-void StartDefaultTask(void const *argument);
+static void MX_IWDG_Init(void);
+void StartDefaultTask(void const * argument);
 
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
@@ -249,11 +254,27 @@ uint8_t RouterPahtSelcte(uint8_t des, uint8_t node, uint8_t rssi)
   return 0;
 }
 
+//判断是否为有效设备
+uint8_t DeviceIsExit(uint8_t device_addr)
+{
+	uint8_t i;
+	for(i=0;i<deviceInfo.deviceNum;i++)
+	{
+		if(device_addr == deviceInfo.deviceBuff[i])
+		{
+		   return 1;
+		}
+	}
+	return 0;
+}
+
 //路由协议帧数据处理，主要针对无线和电力线载波
 extern RETRY_WAITE_FOR_t retryWaiteFor;
 extern osThreadId RetryTaskHandle; //等待应答重新发起命令的任务
 extern osThreadId NetCreateTaskHandle;
 extern osThreadId SuperviseTaskHandle;
+extern uint8_t const Set_LogicAddr_Id[3];
+
 void FrameRouterDataProcess(uint8_t *rx_buff, uint8_t rx_len)
 {
 
@@ -268,6 +289,11 @@ void FrameRouterDataProcess(uint8_t *rx_buff, uint8_t rx_len)
 
   QUEUE_WIRELESS_SEND_t queue_wireless_send;
 
+	if((frameData->len/2) < 70)
+	{
+		FrameRouteData_74Convert((FRAME_ROUTER_CMD_t*)rx_buff,rx_len,&rx_len,0);
+	}
+  
   if (frameData->ctrl.dir == 1) //从站发来的数据
   {
     if (memcmp(frameData->des_addr, &deviceInfo.mac[4], 3) == 0)
@@ -313,10 +339,22 @@ void FrameRouterDataProcess(uint8_t *rx_buff, uint8_t rx_len)
             {
               Wireless_Buf.Wireless_PacketLength = Encrypt_Convert(Wireless_Buf.Wireless_RxData, Wireless_Buf.Wireless_PacketLength, 1); //做解密给上位机
             }
-            if (memcmp(userFrame->addr_GA, LANGroup_Addr, 3) == 0) //判断家庭组地址
-            {
-              UpUart_DataTx(&userFrame->FameHead, userFrame->DataLen + 11, 0);
-            }
+
+						if (memcmp(userFrame->addr_GA, LANGroup_Addr, 3) == 0) //判断家庭组地址
+						{
+							if(memcmp(userFrame->userData.Index,Set_LogicAddr_Id,3)==0) // 配网
+							{
+								 UpUart_DataTx(&userFrame->FameHead, userFrame->DataLen + 11, 0);
+							}
+							else
+							{
+								 if(DeviceIsExit(userFrame->addr_DA) == 1)
+								 {
+										UpUart_DataTx(&userFrame->FameHead, userFrame->DataLen + 11, 0);
+								 }
+							}
+						}
+	
             if (userFrame->Ctrl.eventFlag == 0) //普通帧
             {
               //xTaskNotify(UartTaskHandle, UART_TASK_EVNT_WIRELESS_ACK, eSetValueWithOverwrite); //通知串口任务,发送设备回应的无线数据到核心板串口
@@ -365,13 +403,18 @@ void FrameRouterDataProcess(uint8_t *rx_buff, uint8_t rx_len)
                 queue_wireless_send.len = Frame_Compose((uint8_t *)userFrame);
                 queue_wireless_send.len = Encrypt_Convert(&userFrame->FameHead, queue_wireless_send.len, 0); //加密
               }
+							
+							
               queue_wireless_send.len = FrameRouterCompose(userFrame->addr_DA,
                                                            &userFrame->FameHead,
                                                            userFrame->DataLen + 11,
                                                            queue_wireless_send.msg,
                                                            routerTabAck.table,
                                                            routerTabAck.len);
-              queue_wireless_send.toCh = Wireless_Channel[0];
+																													 
+//							FrameRouteData_74Convert((FRAME_ROUTER_CMD_t*)queue_wireless_send.msg,queue_wireless_send.len,&queue_wireless_send.len,1);
+              
+							queue_wireless_send.toCh = Wireless_Channel[0];
 
               xQueueSend(xQueueWirelessTask, &queue_wireless_send, (TickType_t)10);
               xQueueSend(xQueueAckRouterTable, &routerTabAck, (TickType_t)10);
@@ -431,13 +474,31 @@ void Frame1DataProcess(uint8_t *rx_buff, uint8_t rx_len)
 
 	if (userFrame->FSQ.encryptType > 0) //带有加密数据帧
 	{
-		Wireless_Buf.Wireless_PacketLength = Encrypt_Convert(Wireless_Buf.Wireless_RxData, Wireless_Buf.Wireless_PacketLength, 1); //做解密给上位机
+		Wireless_Buf.Wireless_PacketLength = Encrypt_Convert(rx_buff, rx_len, 1); //做解密给上位机
 	}
 	if (memcmp(userFrame->addr_GA, LANGroup_Addr, 3) == 0) //判断家庭组地址
 	{
 	
 		out_len = Frame_Compose(&userFrame->FameHead);
-		UpUart_DataTx(&userFrame->FameHead, out_len, 0);
+//		if(DeviceIsExit(userFrame->addr_DA) == 1)
+//		{
+//			UpUart_DataTx(&userFrame->FameHead, out_len, 0);
+//		}
+		
+
+			if(memcmp(userFrame->userData.Index,Set_LogicAddr_Id,3)==0) // 配网
+			{
+				UpUart_DataTx(&userFrame->FameHead, out_len, 0);
+			}
+			else
+			{
+				if(DeviceIsExit(userFrame->addr_DA) == 1)
+				{
+					UpUart_DataTx(&userFrame->FameHead, out_len, 0);
+				}
+			}
+
+		
 		
 		if (userFrame->Ctrl.eventFlag == 0) //普通帧
 		{
@@ -668,14 +729,14 @@ void OldDeviceRef(OldDevice_t *p_OldDevice,uint8_t *deviceBuff)
 
 	for(j=0;j<p_OldDevice->num;j++)
 	{
-		for(i=0;i<deviceNum;i++)
+		for(i=0;i<deviceInfo.deviceNum;i++)
 		{
 			if(p_OldDevice->buff[j] == deviceBuff[i])
 			{
 				break;
 			}
 		}
-		if(i == deviceNum)
+		if(i == deviceInfo.deviceNum)
 		{
 			memcpy(&p_OldDevice->buff[j],&p_OldDevice->buff[j+1],p_OldDevice->num-j);
 			p_OldDevice->num--;
@@ -709,12 +770,13 @@ void Local_CmdProcess(FRAME_CMD_t *frameCmd)
       break;
     case 0xFFFE:
       vTaskSuspendAll(); //开启任务调度锁
-      memset(deviceBuff, 0x00, deviceNum);
-      deviceNum = frameCmd->DataLen - 4;
-      memcpy(deviceBuff, frameCmd->userData.content, deviceNum);
+      memset(deviceInfo.deviceBuff, 0x00, deviceInfo.deviceNum);
+      deviceInfo.deviceNum = frameCmd->DataLen - 4;
+      memcpy(deviceInfo.deviceBuff, frameCmd->userData.content, deviceInfo.deviceNum);
+			STMFLASH_Write(DEVICE_INFO_BASH_ADDR, (uint16_t *)&deviceInfo, (sizeof(deviceInfo) + 1) / 2);
       xTaskResumeAll(); //关闭任务调度锁
       
-			OldDeviceRef(&lodDevice,deviceBuff);
+			OldDeviceRef(&lodDevice,deviceInfo.deviceBuff);
 			
       FrameCmdLocalAck(frameCmd, 0, 0);
       break;
@@ -774,7 +836,8 @@ void UartRx_Process(UpCom_Rx_TypDef *prx_ubuf, DevicePara_TypDef *p_device)
   uint8_t routerLen = 0;
   uint8_t i;
   //uint8_t send_temp[256]={0};
-
+	QUEUE_WIRELESS_SEND_t queue_wireless_send;
+  //memset(&queue_wireless_send,0x00,sizeof(QUEUE_WIRELESS_SEND_t)) ;
   if (prx_ubuf->Rx_Status == UartRx_Finished)
   {
     if (0 == FrameData_Detect(prx_ubuf->Frame_Data, prx_ubuf->FrameTotalLen))
@@ -813,11 +876,20 @@ void UartRx_Process(UpCom_Rx_TypDef *prx_ubuf, DevicePara_TypDef *p_device)
                 send_len = frameCmd->DataLen + 11;
               }
               prx_ubuf->FrameTotalLen = send_len;
-              //                            JOINE_NET_CMD_t *joine_cmd = (JOINE_NET_CMD_t *)frameCmd->userData.content;
+							JOINE_NET_CMD_t *joine_cmd = (JOINE_NET_CMD_t *)frameCmd->userData.content;
 
               if (memcmp(frameCmd->userData.Index, Set_LogicAddr_Id, 3) == 0) //配网帧
               {
-                xQueueSend(xQueueNetCreateTask, prx_ubuf, (TickType_t)10);
+								queue_wireless_send.len = FrameRouterCompose_ext(joine_cmd->mac,
+																															 prx_ubuf->Frame_Data,
+																															 prx_ubuf->FrameTotalLen,
+																															 queue_wireless_send.msg,
+																															 0,
+																															 0);
+								queue_wireless_send.toCh = Default_Channel;
+								xQueueSend(xQueueWirelessTask, &queue_wireless_send, (TickType_t)10);			//直接发到无线发射任务
+								osDelay(300);
+                xQueueSend(xQueueNetCreateTask, prx_ubuf, (TickType_t)10);        //发到配网任务
               }
               else //控制
               {
@@ -844,6 +916,7 @@ void UartRx_Process(UpCom_Rx_TypDef *prx_ubuf, DevicePara_TypDef *p_device)
 															queue_temp.msg,
 															routerTab,
 															routerLen);
+//									FrameRouteData_74Convert((FRAME_ROUTER_CMD_t*)queue_temp.msg,send_len,&send_len,1);
 									
 								}
 								
@@ -906,20 +979,10 @@ void DegicePathInit(void)
 //
 void WireLess_Process(WLS *p_wl, DevicePara_TypDef *p_device)
 {
-  ///    static uint8_t Wireless_ErrCnt = 0;
-  ///    uint8_t out_len;
-  ///    uint8_t frame_type;
 
-#ifdef Use_74dcode
-  //74解码
-  if (((p_wl->Wireless_RxData[Region_CmdNumber] & 0X07) != 0X07) && ((p_wl->Wireless_RxData[Region_CmdNumber] & 0X07) != 0X02)) //带编码能力的电器回复无cmd标识
-  {
-    FrameData_74Convert((FRAME_CMD_t *)p_wl->Wireless_RxData, p_wl->Wireless_PacketLength, &out_len, 0);
-    p_wl->Wireless_PacketLength = out_len;
-  }
-#endif
   if (FrameRouterDetect(p_wl->Wireless_RxData) == 1) //校验帧头和CRC16
   {
+		
     FrameRouterDataProcess(p_wl->Wireless_RxData, p_wl->Wireless_PacketLength);
   }
 	else if(Frame1Detect(p_wl->Wireless_RxData,p_wl->Wireless_PacketLength))
@@ -1097,7 +1160,7 @@ int main(void)
   //uint8_t len;
   //uint8_t mac[8]={0x03,0x00,0x01,0x02,0x03,0x04,0x05,0x06};
   //uint8_t test_temp[256]={0x69,0x69,0x14,0xEB,0x81,0x2A,0x5B,0x00,0x00,0x14,0x85,0x0F,0x00,0xAC,0x89,0x00,0x05,0x2B,0x05,0x65,0x2E,0xCC,0x96,0x96};
-	/* USER CODE END 1 */
+  /* USER CODE END 1 */
 
   /* MCU Configuration----------------------------------------------------------*/
 
@@ -1121,8 +1184,9 @@ int main(void)
   MX_USART2_UART_Init();
   MX_SPI1_Init();
   MX_TIM1_Init();
+  MX_IWDG_Init();
   /* USER CODE BEGIN 2 */
-
+	HAL_IWDG_Refresh(&hiwdg);
   HAL_TIM_Base_Start_IT(&htim1);
   HAL_UART_Receive_IT(&huart1, &uart1_rec, 1);
   HAL_UART_Receive_IT(&huart2, &uart2_rec, 1);
@@ -1143,6 +1207,7 @@ int main(void)
   Get_WireLessChannel(Wireless_Channel);
   Wireless_Init();
   Si4438_Receive_Start(Wireless_Channel[0]);
+	AppTaskCreate();
   //len = FrameRouterCompose(0x85,test_temp,9);
   //UartSendBytes(USART1,test_temp,len);
   //FrameRouterDataProcess(test_temp,24);
@@ -1163,45 +1228,40 @@ int main(void)
 
   /* Create the thread(s) */
   /* definition and creation of defaultTask */
-  //osThreadDef(defaultTask, StartDefaultTask, osPriorityNormal, 0, 128);
-  //defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
+//  osThreadDef(defaultTask, StartDefaultTask, osPriorityNormal, 0, 128);
+//  defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
 
-  AppTaskCreate();
+  
   /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
 
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
   /* USER CODE END RTOS_QUEUES */
+ 
 
   /* Start scheduler */
   osKernelStart();
-
+  
   /* We should never get here as control is now taken by the scheduler */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  //  	I2C_Start();
-  //	I2C_Write1Byte(SN3218_ADDR);
-  //	I2C_Write1Byte(0x01);
-  //	I2C_Write1Byte(0x02);
-  //	I2C_Write1Byte(64);
-  //	I2C_Stop();
-  //
-  //	Write_SN3218(Addr_DataRefresh, 0x55);
-  //	delay_ms(1000);
-  //	SN3218_Led_Clear1();
+
   while (1)
   {
 
-    /* USER CODE END WHILE */
+  /* USER CODE END WHILE */
 
-    /* USER CODE BEGIN 3 */
+  /* USER CODE BEGIN 3 */
+		//Si4438_Transmit_Start(&Wireless_Buf, Wireless_Channel[0], "wireless send test",strlen("wireless send test") );
+		//delay_ms(100);
   }
 
   /* USER CODE END 3 */
+
 }
 
 /**
@@ -1214,12 +1274,13 @@ void SystemClock_Config(void)
   RCC_OscInitTypeDef RCC_OscInitStruct;
   RCC_ClkInitTypeDef RCC_ClkInitStruct;
 
-  /**Initializes the CPU, AHB and APB busses clocks 
+    /**Initializes the CPU, AHB and APB busses clocks 
     */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSI|RCC_OSCILLATORTYPE_HSE;
   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
   RCC_OscInitStruct.HSEPredivValue = RCC_HSE_PREDIV_DIV1;
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+  RCC_OscInitStruct.LSIState = RCC_LSI_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
   RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL9;
@@ -1228,9 +1289,10 @@ void SystemClock_Config(void)
     _Error_Handler(__FILE__, __LINE__);
   }
 
-  /**Initializes the CPU, AHB and APB busses clocks 
+    /**Initializes the CPU, AHB and APB busses clocks 
     */
-  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
+                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
@@ -1241,16 +1303,30 @@ void SystemClock_Config(void)
     _Error_Handler(__FILE__, __LINE__);
   }
 
-  /**Configure the Systick interrupt time 
+    /**Configure the Systick interrupt time 
     */
-  HAL_SYSTICK_Config(HAL_RCC_GetHCLKFreq() / 1000);
+  HAL_SYSTICK_Config(HAL_RCC_GetHCLKFreq()/1000);
 
-  /**Configure the Systick 
+    /**Configure the Systick 
     */
   HAL_SYSTICK_CLKSourceConfig(SYSTICK_CLKSOURCE_HCLK);
 
   /* SysTick_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(SysTick_IRQn, 15, 0);
+}
+
+/* IWDG init function */
+static void MX_IWDG_Init(void)
+{
+
+  hiwdg.Instance = IWDG;
+  hiwdg.Init.Prescaler = IWDG_PRESCALER_32;
+  hiwdg.Init.Reload = 4000;
+  if (HAL_IWDG_Init(&hiwdg) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
+
 }
 
 /* SPI1 init function */
@@ -1274,6 +1350,7 @@ static void MX_SPI1_Init(void)
   {
     _Error_Handler(__FILE__, __LINE__);
   }
+
 }
 
 /* TIM1 init function */
@@ -1284,9 +1361,9 @@ static void MX_TIM1_Init(void)
   TIM_MasterConfigTypeDef sMasterConfig;
 
   htim1.Instance = TIM1;
-  htim1.Init.Prescaler = 72 - 1;
+  htim1.Init.Prescaler = 72-1;
   htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim1.Init.Period = 1000 - 1;
+  htim1.Init.Period = 1000-1;
   htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim1.Init.RepetitionCounter = 0;
   htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
@@ -1307,6 +1384,7 @@ static void MX_TIM1_Init(void)
   {
     _Error_Handler(__FILE__, __LINE__);
   }
+
 }
 
 /* USART1 init function */
@@ -1325,6 +1403,7 @@ static void MX_USART1_UART_Init(void)
   {
     _Error_Handler(__FILE__, __LINE__);
   }
+
 }
 
 /* USART2 init function */
@@ -1343,6 +1422,7 @@ static void MX_USART2_UART_Init(void)
   {
     _Error_Handler(__FILE__, __LINE__);
   }
+
 }
 
 /** Configure pins as 
@@ -1364,26 +1444,27 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, LEDG_Pin | LEDR_Pin | SI4438_SDN_Pin | SI4438_NSS_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, LEDG_Pin|LEDR_Pin|SI4438_SDN_Pin|SI4438_NSS_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, SI4438_RX_Pin | SI4438_TX_Pin | LED_SN3218A_SDB_Pin | LED_SN3218A_SDA_Pin | LED_SN3218A_SCL_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, SI4438_RX_Pin|SI4438_TX_Pin|LED_SN3218A_SDB_Pin|LED_SN3218A_SDA_Pin 
+                          |LED_SN3218A_SCL_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pins : TOUCH2_Pin TOUCH4_Pin TOUCH1_Pin */
-  GPIO_InitStruct.Pin = TOUCH2_Pin | TOUCH4_Pin | TOUCH1_Pin;
+  GPIO_InitStruct.Pin = TOUCH2_Pin|TOUCH4_Pin|TOUCH1_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
   /*Configure GPIO pins : LEDG_Pin LEDR_Pin SI4438_SDN_Pin SI4438_NSS_Pin */
-  GPIO_InitStruct.Pin = LEDG_Pin | LEDR_Pin | SI4438_SDN_Pin | SI4438_NSS_Pin;
+  GPIO_InitStruct.Pin = LEDG_Pin|LEDR_Pin|SI4438_SDN_Pin|SI4438_NSS_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pins : SI4438_RX_Pin SI4438_TX_Pin */
-  GPIO_InitStruct.Pin = SI4438_RX_Pin | SI4438_TX_Pin;
+  GPIO_InitStruct.Pin = SI4438_RX_Pin|SI4438_TX_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -1402,15 +1483,16 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(TOUCH3_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : LED_SN3218A_SDB_Pin LED_SN3218A_SDA_Pin LED_SN3218A_SCL_Pin */
-  GPIO_InitStruct.Pin = LED_SN3218A_SDB_Pin | LED_SN3218A_SDA_Pin | LED_SN3218A_SCL_Pin;
+  GPIO_InitStruct.Pin = LED_SN3218A_SDB_Pin|LED_SN3218A_SDA_Pin|LED_SN3218A_SCL_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
-  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 5, 0);
+  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 6, 0);
   HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
+
 }
 
 /* USER CODE BEGIN 4 */
@@ -1418,7 +1500,7 @@ static void MX_GPIO_Init(void)
 /* USER CODE END 4 */
 
 /* StartDefaultTask function */
-void StartDefaultTask(void const *argument)
+void StartDefaultTask(void const * argument)
 {
 
   /* USER CODE BEGIN 5 */
@@ -1427,7 +1509,7 @@ void StartDefaultTask(void const *argument)
   {
     osDelay(1);
   }
-  /* USER CODE END 5 */
+  /* USER CODE END 5 */ 
 }
 
 /**
@@ -1446,7 +1528,7 @@ void _Error_Handler(char *file, int line)
   /* USER CODE END Error_Handler_Debug */
 }
 
-#ifdef USE_FULL_ASSERT
+#ifdef  USE_FULL_ASSERT
 /**
   * @brief  Reports the name of the source file and the source line number
   *         where the assert_param error has occurred.
@@ -1454,8 +1536,8 @@ void _Error_Handler(char *file, int line)
   * @param  line: assert_param error line source number
   * @retval None
   */
-void assert_failed(uint8_t *file, uint32_t line)
-{
+void assert_failed(uint8_t* file, uint32_t line)
+{ 
   /* USER CODE BEGIN 6 */
   /* User can add his own implementation to report the file name and line number,
      tex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */

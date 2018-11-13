@@ -24,6 +24,8 @@ typedef struct DeviceInfo_
   uint8_t aes[16];    //密钥
   uint8_t addr_DA;    //逻辑地址
   uint8_t addr_GA[3]; //群众地址
+	uint8_t deviceNum;      //配网的设备个数
+	uint8_t deviceBuff[224]; //已经配网的设备地址
 
 } DeviceInfo_t;
 
