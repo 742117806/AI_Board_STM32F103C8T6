@@ -79,60 +79,60 @@
 
 typedef enum
 {
-    Uart_NoError = 0,
-    Uart_TxBusy,
-    Uart_ParaError,
+  Uart_NoError = 0,
+  Uart_TxBusy,
+  Uart_ParaError,
 } Uart_ErrorType;
 
 typedef enum
 {
-    UartRx_FrameHead = 0,
-    UartRx_FrameAddr,
-    UartRx_FrameSeq,
-    UartRx_DataCmd,
-    UartRx_Datalen,
-    UartRx_Data,
-    UartRx_FrameCs,
-    UartRx_FrameEnd,
+  UartRx_FrameHead = 0,
+  UartRx_FrameAddr,
+  UartRx_FrameSeq,
+  UartRx_DataCmd,
+  UartRx_Datalen,
+  UartRx_Data,
+  UartRx_FrameCs,
+  UartRx_FrameEnd,
 
-    UartRx_AesCmd,
-    UartRx_Aeslen,
-    UartRx_AesData,
-    UartRx_AesFrameCs1,
-    UartRx_AesFrameCs2,
+  UartRx_AesCmd,
+  UartRx_Aeslen,
+  UartRx_AesData,
+  UartRx_AesFrameCs1,
+  UartRx_AesFrameCs2,
 
-    UartRx_Finished, //接收完成
+  UartRx_Finished, //接收完成
 } UART_RxSta_TypDef;
 
 #define Tx_GapTime_Size 7
 
 typedef enum
 {
-    UartTx_Finished = 0, //发送完成
-    UartTx_Start,        //启动发送
-    UartTx_End,          //发送结束
+  UartTx_Finished = 0, //发送完成
+  UartTx_Start,        //启动发送
+  UartTx_End,          //发送结束
 } Uart_TxSta_TypDef;
 
 #define UARTFrame_TxLen_MAX MAXDOWNBUF - 32
 typedef struct
 {
-    Uart_TxSta_TypDef Tx_Status;
-    uint8_t Frame_Len;
-    uint8_t Byte_Cnt;
-    uint8_t Frame_Data[HKFrame_LenMax];
-    uint8_t TxEnd_Cnt;
-    //uint32_t TxGap_StartTime;
+  Uart_TxSta_TypDef Tx_Status;
+  uint8_t Frame_Len;
+  uint8_t Byte_Cnt;
+  uint8_t Frame_Data[HKFrame_LenMax];
+  uint8_t TxEnd_Cnt;
+  //uint32_t TxGap_StartTime;
 } UartFrame_TX_TypDef;
 
 /*************************************************************/
 
 typedef struct
 {
-    volatile UART_RxSta_TypDef Rx_Status;
+  volatile UART_RxSta_TypDef Rx_Status;
 
-    uint8_t FrameTotalLen;
-    uint8_t Frame_Data[HKFrame_LenMax];
-    volatile uint8_t Over_time_count;
+  uint8_t FrameTotalLen;
+  uint8_t Frame_Data[HKFrame_LenMax];
+  volatile uint8_t Over_time_count;
 } UpCom_Rx_TypDef;
 
 /************************* 外部变量 ***************************/

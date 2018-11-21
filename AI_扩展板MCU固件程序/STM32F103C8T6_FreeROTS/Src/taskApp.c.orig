@@ -131,7 +131,7 @@ void AppSuperviseTask(void const *argument)
                 }
             }
             queue_wireless.len = FrameRouterHeart(deviceInfo.deviceBuff[j], userTemp, 1, queue_wireless.msg, routerTab, routerLen);
-            queue_wireless.toCh = Default_Channel;
+            queue_wireless.toCh = Wireless_Channel[0];
             xQueueSend(xQueueWirelessTask, &queue_wireless, (TickType_t)100);
 
             xResult = xTaskNotifyWait(0x00000000, 0xFFFFFFFF, &ulValue, (TickType_t)1000); //等待回应
@@ -164,8 +164,7 @@ void AppSuperviseTask(void const *argument)
                             continue;
                         routerTab[0] = deviceInfo.deviceBuff[i];
                         queue_wireless.len = FrameRouterHeart(deviceInfo.deviceBuff[j + 1], userTemp, 1, queue_wireless.msg, routerTab, routerLen);
-                        //queue_wireless.toCh = Wireless_Channel[0];
-						queue_wireless.toCh = Default_Channel;
+                        queue_wireless.toCh = Wireless_Channel[0];
                         xQueueSend(xQueueWirelessTask, &queue_wireless, (TickType_t)100);
                         xResult = xTaskNotifyWait(0x00000000, 0xFFFFFFFF, &ulValue, (TickType_t)1000); //等待回应
                         if (xResult == pdPASS)                                                         /* 成功接收 */
@@ -552,15 +551,6 @@ void AppRetryTask(void const *argument)
     }
 }
 
-//二级路由查找配网
-//void FrameRouter2(uint8_t device,uint8_t *routerTab)
-//{
-//	uint16_t i,j;
-//	
-//	
-//	
-//}
-
 /*
 *********************************************************************************************************
 *  函 数 名: AppNetCreateTask
@@ -649,7 +639,7 @@ void AppNetCreateTask(void const *argument)
                 if (ulValue != (1ul << 1))
                 {
 
-                    for (i = 0; i < deviceInfo.deviceNum; i++)      //路由查询
+                    for (i = 0; i < deviceInfo.deviceNum; i++)
                     {
                         if (deviceInfo.deviceBuff[i] == userFrame->addr_DA)
                             continue;
@@ -734,9 +724,9 @@ void AppTaskCreate(void)
     xQueueWirelessRetryTask = xQueueCreate(1, sizeof(QUEUE_WIRELESS_SEND_t));
 
 
-    /* 创建互斥信号量 */
-    xSemaphore_uartTx = xSemaphoreCreateMutex();
-    xSemaphoreGive(xSemaphore_uartTx);
+	/* 创建互斥信号量 */
+	xSemaphore_uartTx = xSemaphoreCreateMutex();
+	xSemaphoreGive(xSemaphore_uartTx);
 
     osThreadDef(NetCreateTask, AppNetCreateTask, osPriorityNormal, 3, 256);
     osThreadDef(UartTask, AppUartTask, osPriorityNormal, 1, 256);

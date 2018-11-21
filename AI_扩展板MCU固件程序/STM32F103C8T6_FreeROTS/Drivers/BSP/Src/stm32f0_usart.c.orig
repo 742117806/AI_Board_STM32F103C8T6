@@ -9,13 +9,13 @@ uint8_t Secret_KeyOk_Flag; //√‹‘øOK±Í÷æ
 
 Uart_ErrorType UpUart_DataTx(uint8_t *p_buf, uint8_t len, UartFrame_TX_TypDef *pu_buf)
 {
-    UNUSED(pu_buf);
-    UartSendBytes(USART1, p_buf, len);
-    return Uart_NoError;
+  UNUSED(pu_buf);
+  UartSendBytes(USART1, p_buf, len);
+  return Uart_NoError;
 }
 
 uint8_t UpUart_TX_INT_Process(UartFrame_TX_TypDef *pu_buf)
 {
-    UNUSED(pu_buf);
-    return 0;
+  UNUSED(pu_buf);
+  return 0;
 }

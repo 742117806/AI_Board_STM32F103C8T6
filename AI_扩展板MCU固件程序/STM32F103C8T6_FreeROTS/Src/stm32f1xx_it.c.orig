@@ -46,7 +46,7 @@ extern UART_HandleTypeDef huart1;
 extern UART_HandleTypeDef huart2;
 
 /******************************************************************************/
-/*            Cortex-M3 Processor Interruption and Exception Handlers         */
+/*            Cortex-M3 Processor Interruption and Exception Handlers         */ 
 /******************************************************************************/
 
 /**
@@ -54,12 +54,12 @@ extern UART_HandleTypeDef huart2;
 */
 void NMI_Handler(void)
 {
-    /* USER CODE BEGIN NonMaskableInt_IRQn 0 */
+  /* USER CODE BEGIN NonMaskableInt_IRQn 0 */
 
-    /* USER CODE END NonMaskableInt_IRQn 0 */
-    /* USER CODE BEGIN NonMaskableInt_IRQn 1 */
+  /* USER CODE END NonMaskableInt_IRQn 0 */
+  /* USER CODE BEGIN NonMaskableInt_IRQn 1 */
 
-    /* USER CODE END NonMaskableInt_IRQn 1 */
+  /* USER CODE END NonMaskableInt_IRQn 1 */
 }
 
 /**
@@ -67,17 +67,17 @@ void NMI_Handler(void)
 */
 void HardFault_Handler(void)
 {
-    /* USER CODE BEGIN HardFault_IRQn 0 */
+  /* USER CODE BEGIN HardFault_IRQn 0 */
 
-    /* USER CODE END HardFault_IRQn 0 */
-    while (1)
-    {
-        /* USER CODE BEGIN W1_HardFault_IRQn 0 */
-        /* USER CODE END W1_HardFault_IRQn 0 */
-    }
-    /* USER CODE BEGIN HardFault_IRQn 1 */
+  /* USER CODE END HardFault_IRQn 0 */
+  while (1)
+  {
+    /* USER CODE BEGIN W1_HardFault_IRQn 0 */
+    /* USER CODE END W1_HardFault_IRQn 0 */
+  }
+  /* USER CODE BEGIN HardFault_IRQn 1 */
 
-    /* USER CODE END HardFault_IRQn 1 */
+  /* USER CODE END HardFault_IRQn 1 */
 }
 
 /**
@@ -85,17 +85,17 @@ void HardFault_Handler(void)
 */
 void MemManage_Handler(void)
 {
-    /* USER CODE BEGIN MemoryManagement_IRQn 0 */
+  /* USER CODE BEGIN MemoryManagement_IRQn 0 */
 
-    /* USER CODE END MemoryManagement_IRQn 0 */
-    while (1)
-    {
-        /* USER CODE BEGIN W1_MemoryManagement_IRQn 0 */
-        /* USER CODE END W1_MemoryManagement_IRQn 0 */
-    }
-    /* USER CODE BEGIN MemoryManagement_IRQn 1 */
+  /* USER CODE END MemoryManagement_IRQn 0 */
+  while (1)
+  {
+    /* USER CODE BEGIN W1_MemoryManagement_IRQn 0 */
+    /* USER CODE END W1_MemoryManagement_IRQn 0 */
+  }
+  /* USER CODE BEGIN MemoryManagement_IRQn 1 */
 
-    /* USER CODE END MemoryManagement_IRQn 1 */
+  /* USER CODE END MemoryManagement_IRQn 1 */
 }
 
 /**
@@ -103,17 +103,17 @@ void MemManage_Handler(void)
 */
 void BusFault_Handler(void)
 {
-    /* USER CODE BEGIN BusFault_IRQn 0 */
+  /* USER CODE BEGIN BusFault_IRQn 0 */
 
-    /* USER CODE END BusFault_IRQn 0 */
-    while (1)
-    {
-        /* USER CODE BEGIN W1_BusFault_IRQn 0 */
-        /* USER CODE END W1_BusFault_IRQn 0 */
-    }
-    /* USER CODE BEGIN BusFault_IRQn 1 */
+  /* USER CODE END BusFault_IRQn 0 */
+  while (1)
+  {
+    /* USER CODE BEGIN W1_BusFault_IRQn 0 */
+    /* USER CODE END W1_BusFault_IRQn 0 */
+  }
+  /* USER CODE BEGIN BusFault_IRQn 1 */
 
-    /* USER CODE END BusFault_IRQn 1 */
+  /* USER CODE END BusFault_IRQn 1 */
 }
 
 /**
@@ -121,17 +121,17 @@ void BusFault_Handler(void)
 */
 void UsageFault_Handler(void)
 {
-    /* USER CODE BEGIN UsageFault_IRQn 0 */
+  /* USER CODE BEGIN UsageFault_IRQn 0 */
 
-    /* USER CODE END UsageFault_IRQn 0 */
-    while (1)
-    {
-        /* USER CODE BEGIN W1_UsageFault_IRQn 0 */
-        /* USER CODE END W1_UsageFault_IRQn 0 */
-    }
-    /* USER CODE BEGIN UsageFault_IRQn 1 */
+  /* USER CODE END UsageFault_IRQn 0 */
+  while (1)
+  {
+    /* USER CODE BEGIN W1_UsageFault_IRQn 0 */
+    /* USER CODE END W1_UsageFault_IRQn 0 */
+  }
+  /* USER CODE BEGIN UsageFault_IRQn 1 */
 
-    /* USER CODE END UsageFault_IRQn 1 */
+  /* USER CODE END UsageFault_IRQn 1 */
 }
 
 /**
@@ -139,12 +139,12 @@ void UsageFault_Handler(void)
 */
 void DebugMon_Handler(void)
 {
-    /* USER CODE BEGIN DebugMonitor_IRQn 0 */
+  /* USER CODE BEGIN DebugMonitor_IRQn 0 */
 
-    /* USER CODE END DebugMonitor_IRQn 0 */
-    /* USER CODE BEGIN DebugMonitor_IRQn 1 */
+  /* USER CODE END DebugMonitor_IRQn 0 */
+  /* USER CODE BEGIN DebugMonitor_IRQn 1 */
 
-    /* USER CODE END DebugMonitor_IRQn 1 */
+  /* USER CODE END DebugMonitor_IRQn 1 */
 }
 
 /**
@@ -152,12 +152,12 @@ void DebugMon_Handler(void)
 */
 void SysTick_Handler(void)
 {
-    /* USER CODE BEGIN SysTick_IRQn 0 */
-    /* USER CODE END SysTick_IRQn 0 */
-    HAL_IncTick();
-    osSystickHandler();
-    /* USER CODE BEGIN SysTick_IRQn 1 */
-    /* USER CODE END SysTick_IRQn 1 */
+  /* USER CODE BEGIN SysTick_IRQn 0 */
+  /* USER CODE END SysTick_IRQn 0 */
+  HAL_IncTick();
+  osSystickHandler();
+  /* USER CODE BEGIN SysTick_IRQn 1 */
+  /* USER CODE END SysTick_IRQn 1 */
 }
 
 /******************************************************************************/
@@ -172,13 +172,13 @@ void SysTick_Handler(void)
 */
 void TIM1_UP_IRQHandler(void)
 {
-    /* USER CODE BEGIN TIM1_UP_IRQn 0 */
+  /* USER CODE BEGIN TIM1_UP_IRQn 0 */
 
-    /* USER CODE END TIM1_UP_IRQn 0 */
-    HAL_TIM_IRQHandler(&htim1);
-    /* USER CODE BEGIN TIM1_UP_IRQn 1 */
+  /* USER CODE END TIM1_UP_IRQn 0 */
+  HAL_TIM_IRQHandler(&htim1);
+  /* USER CODE BEGIN TIM1_UP_IRQn 1 */
 
-    /* USER CODE END TIM1_UP_IRQn 1 */
+  /* USER CODE END TIM1_UP_IRQn 1 */
 }
 
 /**
@@ -186,30 +186,30 @@ void TIM1_UP_IRQHandler(void)
 */
 void USART1_IRQHandler(void)
 {
-    /* USER CODE BEGIN USART1_IRQn 0 */
-    extern uint8_t uart1_rec;
-    uint32_t timeout = 0;
-    /* USER CODE END USART1_IRQn 0 */
-    HAL_UART_IRQHandler(&huart1);
-    /* USER CODE BEGIN USART1_IRQn 1 */
-    HAL_UART_IRQHandler(&huart1); //调用HAL库中断处理公用函数
+  /* USER CODE BEGIN USART1_IRQn 0 */
+  extern uint8_t uart1_rec;
+  uint32_t timeout = 0;
+  /* USER CODE END USART1_IRQn 0 */
+  HAL_UART_IRQHandler(&huart1);
+  /* USER CODE BEGIN USART1_IRQn 1 */
+  HAL_UART_IRQHandler(&huart1); //调用HAL库中断处理公用函数
 
-    timeout = 0;
-    while (HAL_UART_GetState(&huart1) != HAL_UART_STATE_READY) //等待就绪
-    {
-        timeout++; ////超时处理
-        if (timeout > HAL_MAX_DELAY)
-            break;
-    }
+  timeout = 0;
+  while (HAL_UART_GetState(&huart1) != HAL_UART_STATE_READY) //等待就绪
+  {
+    timeout++; ////超时处理
+    if (timeout > HAL_MAX_DELAY)
+      break;
+  }
 
-    timeout = 0;
-    while (HAL_UART_Receive_IT(&huart1, &uart1_rec, 1) != HAL_OK) //一次处理完成之后，重新开启中断并设置RxXferCount为1
-    {
-        timeout++; //超时处理
-        if (timeout > HAL_MAX_DELAY)
-            break;
-    }
-    /* USER CODE END USART1_IRQn 1 */
+  timeout = 0;
+  while (HAL_UART_Receive_IT(&huart1, &uart1_rec, 1) != HAL_OK) //一次处理完成之后，重新开启中断并设置RxXferCount为1
+  {
+    timeout++; //超时处理
+    if (timeout > HAL_MAX_DELAY)
+      break;
+  }
+  /* USER CODE END USART1_IRQn 1 */
 }
 
 /**
@@ -217,30 +217,30 @@ void USART1_IRQHandler(void)
 */
 void USART2_IRQHandler(void)
 {
-    /* USER CODE BEGIN USART2_IRQn 0 */
-    extern uint8_t uart2_rec;
-    uint32_t timeout = 0;
-    /* USER CODE END USART2_IRQn 0 */
-    HAL_UART_IRQHandler(&huart2);
-    /* USER CODE BEGIN USART2_IRQn 1 */
-    HAL_UART_IRQHandler(&huart2); //调用HAL库中断处理公用函数
+  /* USER CODE BEGIN USART2_IRQn 0 */
+  extern uint8_t uart2_rec;
+  uint32_t timeout = 0;
+  /* USER CODE END USART2_IRQn 0 */
+  HAL_UART_IRQHandler(&huart2);
+  /* USER CODE BEGIN USART2_IRQn 1 */
+  HAL_UART_IRQHandler(&huart2); //调用HAL库中断处理公用函数
 
-    timeout = 0;
-    while (HAL_UART_GetState(&huart2) != HAL_UART_STATE_READY) //等待就绪
-    {
-        timeout++; ////超时处理
-        if (timeout > HAL_MAX_DELAY)
-            break;
-    }
+  timeout = 0;
+  while (HAL_UART_GetState(&huart2) != HAL_UART_STATE_READY) //等待就绪
+  {
+    timeout++; ////超时处理
+    if (timeout > HAL_MAX_DELAY)
+      break;
+  }
 
-    timeout = 0;
-    while (HAL_UART_Receive_IT(&huart2, &uart2_rec, 1) != HAL_OK) //一次处理完成之后，重新开启中断并设置RxXferCount为1
-    {
-        timeout++; //超时处理
-        if (timeout > HAL_MAX_DELAY)
-            break;
-    }
-    /* USER CODE END USART2_IRQn 1 */
+  timeout = 0;
+  while (HAL_UART_Receive_IT(&huart2, &uart2_rec, 1) != HAL_OK) //一次处理完成之后，重新开启中断并设置RxXferCount为1
+  {
+    timeout++; //超时处理
+    if (timeout > HAL_MAX_DELAY)
+      break;
+  }
+  /* USER CODE END USART2_IRQn 1 */
 }
 
 /**
@@ -248,13 +248,13 @@ void USART2_IRQHandler(void)
 */
 void EXTI15_10_IRQHandler(void)
 {
-    /* USER CODE BEGIN EXTI15_10_IRQn 0 */
+  /* USER CODE BEGIN EXTI15_10_IRQn 0 */
 
-    /* USER CODE END EXTI15_10_IRQn 0 */
-    HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_12);
-    /* USER CODE BEGIN EXTI15_10_IRQn 1 */
+  /* USER CODE END EXTI15_10_IRQn 0 */
+  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_12);
+  /* USER CODE BEGIN EXTI15_10_IRQn 1 */
 
-    /* USER CODE END EXTI15_10_IRQn 1 */
+  /* USER CODE END EXTI15_10_IRQn 1 */
 }
 
 /* USER CODE BEGIN 1 */

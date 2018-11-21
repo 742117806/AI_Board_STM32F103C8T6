@@ -25,22 +25,22 @@
 */
 typedef struct DeviceInfo_
 {
-    uint8_t mac_exist;  //标识设备MAC是否已经烧录
-    uint8_t mac[8];     //设备MAC地址
-    uint8_t aes[16];    //密钥
-    uint8_t addr_DA;    //逻辑地址
-    uint8_t addr_GA[3]; //群众地址
-    uint8_t deviceNum;      //配网的设备个数
-    uint8_t deviceBuff[224]; //已经配网的设备地址
+  uint8_t mac_exist;  //标识设备MAC是否已经烧录
+  uint8_t mac[8];     //设备MAC地址
+  uint8_t aes[16];    //密钥
+  uint8_t addr_DA;    //逻辑地址
+  uint8_t addr_GA[3]; //群众地址
+	uint8_t deviceNum;      //配网的设备个数
+	uint8_t deviceBuff[224]; //已经配网的设备地址
 
 } DeviceInfo_t;
 
 typedef struct OldDevice_
-{
-    uint8_t num;	//旧版本设备的个数
-    uint8_t buff[100];	//旧版本的设备（0xAC），为了兼容新协议（0x69）
-    uint8_t no;			//为了数据字节对齐2的倍数
-} OldDevice_t;
+{	
+	uint8_t num;	//旧版本设备的个数
+	uint8_t buff[100];	//旧版本的设备（0xAC），为了兼容新协议（0x69）
+	uint8_t no;			//为了数据字节对齐2的倍数
+}OldDevice_t;
 
 extern DeviceInfo_t deviceInfo;
 extern OldDevice_t 	lodDevice;
