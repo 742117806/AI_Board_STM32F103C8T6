@@ -241,7 +241,7 @@ uint8_t RouterPahtSelcte(uint8_t des, uint8_t node, uint8_t rssi)
 
     des_index = des - DEVICE_INDEX_OFFSET; //算出源地址所在的存储位置
     node_index = node - DEVICE_INDEX_OFFSET;
-    if ((desDevice[des_index].des_rssi < 30) && (rssi >= 30)) //目标设备到扩展板的信号质量弱，并且目标设备到中继的信号比较强
+    if ((desDevice[des_index].des_rssi < 50) && (rssi >= 50)) //目标设备到扩展板的信号质量弱，并且目标设备到中继的信号比较强
     {
 
         if (desDevice[des_index].des_rssi < desDevice[node_index].des_rssi) //两个设备到扩展板的信号值比较
@@ -305,7 +305,7 @@ void FrameRouterDataProcess(uint8_t *rx_buff, uint8_t rx_len)
 
                     deviceIndex = frameData->src_addr - DEVICE_INDEX_OFFSET;            //算出源地址所在的存储位置
                     desDevice[deviceIndex].des_rssi = Wireless_Buf.Wireless_RSSI_Value; //缓存目的地址的信号强度值
-                    if ((desDevice[deviceIndex].des_rssi >= 30)&&(desDevice[deviceIndex].path1.len>0))                          //说明目的设备的到扩展板的信号良好
+                    if ((desDevice[deviceIndex].des_rssi >= 50)&&(desDevice[deviceIndex].path1.len>0))                          //说明目的设备的到扩展板的信号良好
                     {
                         desDevice[deviceIndex].path1.len = 0;                                                       //直接去掉路由
                         STMFLASH_Write(DEVICE_ROUTER_TAB_ADDR, (uint16_t *)desDevice, (sizeof(desDevice) + 1) / 2); //+1和/2是为了2字节对齐
@@ -904,7 +904,7 @@ void UartRx_Process(UpCom_Rx_TypDef *prx_ubuf, DevicePara_TypDef *p_device)
                                 {
                                     routerTab[i] = desDevice[routerIndex].path1.addr[i];
                                 }
-                                if(DeviceVsnJudge(frameCmd->addr_DA,lodDevice.buff,lodDevice.num) == 1)
+                                if(DeviceVsnJudge(frameCmd->addr_DA,lodDevice.buff,lodDevice.num) == 1)   //是否为旧电器
                                 {
 
                                     memcpy(queue_temp.msg, &frameCmd->FameHead, send_len);

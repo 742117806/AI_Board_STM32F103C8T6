@@ -553,13 +553,13 @@ void AppRetryTask(void const *argument)
 }
 
 //二级路由查找配网
-//void FrameRouter2(uint8_t device,uint8_t *routerTab)
-//{
-//	uint16_t i,j;
-//	
-//	
-//	
-//}
+void GetRouterTable(uint8_t device,uint8_t *routerTab)
+{
+	uint16_t i,j;
+	
+	
+	
+}
 
 /*
 *********************************************************************************************************
