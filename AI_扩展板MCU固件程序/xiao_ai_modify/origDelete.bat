@@ -1,0 +1,2 @@
+del *.orig /s
+exit

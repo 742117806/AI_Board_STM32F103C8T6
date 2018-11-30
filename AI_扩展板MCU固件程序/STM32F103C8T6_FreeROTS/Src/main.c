@@ -83,6 +83,7 @@ DES_DEVICE_t desDevice[224];   //目标设备路径，224个设备
 //uint8_t deviceNum = 0;         //已经配网的设备个数
 //uint8_t deviceBuff[224] = {0}; //224个设备
 
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -884,6 +885,7 @@ void UartRx_Process(UpCom_Rx_TypDef *prx_ubuf, DevicePara_TypDef *p_device)
 
                             if (memcmp(frameCmd->userData.Index, Set_LogicAddr_Id, 3) == 0) //配网帧
                             {
+
                                 queue_wireless_send.len = FrameRouterCompose_ext(joine_cmd->mac,
                                                           prx_ubuf->Frame_Data,
                                                           prx_ubuf->FrameTotalLen,
@@ -891,9 +893,20 @@ void UartRx_Process(UpCom_Rx_TypDef *prx_ubuf, DevicePara_TypDef *p_device)
                                                           0,
                                                           0);
                                 queue_wireless_send.toCh = Default_Channel;
-                                xQueueSend(xQueueWirelessTask, &queue_wireless_send, (TickType_t)10);			//直接发到无线发射任务
-                                osDelay(300);
-                                xQueueSend(xQueueNetCreateTask, prx_ubuf, (TickType_t)10);        //发到配网任务
+						
+								if(IsLowPowerDevice(joine_cmd->mac[7])==1)
+								{
+									LowPowerDeviceInset(joine_cmd->mac[7],frameCmd->addr_DA);
+									LowPowerDeviceWakeUp(Default_Channel);
+									xQueueSend(xQueueWirelessTask, &queue_wireless_send, (TickType_t)10);			//直接发到无线发射任务
+								}
+								else
+								{
+									xQueueSend(xQueueWirelessTask, &queue_wireless_send, (TickType_t)10);			//直接发到无线发射任务
+									osDelay(300);
+									xQueueSend(xQueueNetCreateTask, prx_ubuf, (TickType_t)10);        //发到配网任务
+								}
+
                             }
                             else //控制
                             {
@@ -904,6 +917,12 @@ void UartRx_Process(UpCom_Rx_TypDef *prx_ubuf, DevicePara_TypDef *p_device)
                                 {
                                     routerTab[i] = desDevice[routerIndex].path1.addr[i];
                                 }
+						
+						
+								if(LowPowerDeviceMach(frameCmd->addr_DA)==1)
+								{
+									LowPowerDeviceWakeUp(Wireless_Channel[0]);
+								}
                                 if(DeviceVsnJudge(frameCmd->addr_DA,lodDevice.buff,lodDevice.num) == 1)   //是否为旧电器
                                 {
 
@@ -1190,7 +1209,7 @@ int main(void)
         lodDevice.num = 0;
         STMFLASH_Write(OLD_DEVICE_ADDR, (uint16_t *)&lodDevice, (sizeof(OldDevice_t) + 1) / 2); //+1和/2是为了2字节对齐
     }
-
+    LowPowerDeviceInit();
     SecretKey_Process(&deviceInfo); //计算出密文，存放在aes_w，供加解密用
     DegicePathInit();
     Get_WireLessChannel(Wireless_Channel);

@@ -156,7 +156,7 @@
         <Ww>
           <count>0</count>
           <WinNumber>1</WinNumber>
-          <ItemText>Wireless_Buf,0x0A</ItemText>
+          <ItemText>Wireless_Buf,0x10</ItemText>
         </Ww>
         <Ww>
           <count>1</count>
@@ -197,6 +197,11 @@
           <count>8</count>
           <WinNumber>1</WinNumber>
           <ItemText>desDevice</ItemText>
+        </Ww>
+        <Ww>
+          <count>9</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>lowPowerDevice</ItemText>
         </Ww>
       </WatchWindow1>
       <MemoryWindow1>
@@ -840,7 +845,7 @@
       <GroupNumber>7</GroupNumber>
       <FileNumber>45</FileNumber>
       <FileType>1</FileType>
-      <tvExp>0</tvExp>
+      <tvExp>1</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
       <bDave2>0</bDave2>
       <PathWithFileName>../Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_4.c</PathWithFileName>

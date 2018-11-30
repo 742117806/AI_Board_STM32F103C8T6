@@ -67,14 +67,15 @@ void UartSendData(USART_TypeDef *USARTx, uint8_t byte)
     USARTx->DR = byte;
 }
 
-/*
+/**
 *********************************************************************************************************
 *  函 数 名: UartSendBytes
 *  功能说明: 串口发送多个字节函数
-*  形    参: @USARTx串口ID(USART1,USART2)，@buf 发送是缓冲区地址，@len 发送字节长度
+*  形    参: @USARTx串口ID(USART1,USART2)，
+			 @buf 发送是缓冲区地址，
+			 @len 发送字节长度
 *  返 回 值: 无
 *********************************************************************************************************
-
 */
 void UartSendBytes(USART_TypeDef *USARTx, uint8_t *buf, uint16_t len)
 {
@@ -87,11 +88,12 @@ void UartSendBytes(USART_TypeDef *USARTx, uint8_t *buf, uint16_t len)
     xSemaphoreGive(xSemaphore_uartTx);
 }
 
-/*
+/**
 *********************************************************************************************************
 *  函 数 名: UartSendStr
 *  功能说明: 串口发送字符串
-*  形    参: @USARTx串口ID(USART1,USART2)，@str字符串缓冲区地址
+*  形    参: @USARTx串口ID(USART1,USART2)，
+			 @str字符串缓冲区地址
 *  返 回 值: 无
 *********************************************************************************************************
 */
