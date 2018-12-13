@@ -48,7 +48,7 @@
             <InvalidFlash>1</InvalidFlash>
           </TargetStatus>
           <OutputDirectory>STM32F103C8T6_RTX\</OutputDirectory>
-          <OutputName>STM32F103C8T6_V0302_490M_FreeRTOS</OutputName>
+          <OutputName>STM32F103C8T6_V0303_490M_FreeRTOS</OutputName>
           <CreateExecutable>1</CreateExecutable>
           <CreateLib>0</CreateLib>
           <CreateHexFile>1</CreateHexFile>

@@ -15,7 +15,7 @@
 
 #define OLD_DEVICE_ADDR					(DEVICE_ROUTER_TAB_ADDR + DEVICE_ROUTER_TAB_LEN)	//旧设备
 #define OLD_DEVICE_LEN					(4*1024)			                //4K
-#define DEVICE_INFO_BASH_ADDR 	(OLD_DEVICE_ADDR + OLD_DEVICE_LEN)  //保存设备信息的首地址 ,在最后2K
+#define DEVICE_INFO_BASH_ADDR 	(OLD_DEVICE_ADDR + OLD_DEVICE_LEN+0x40)  //保存设备信息的首地址 ,在最后2K
 
 #define LOW_PWR_DEVICE_ADDR		(STM32_FLASH_END-11*1024)
 
@@ -25,8 +25,15 @@
 */
 typedef struct DeviceInfo_
 {
-    uint8_t mac_exist;  //标识设备MAC是否已经烧录
-    uint8_t mac[8];     //设备MAC地址
+
+	uint8_t mac_h;  		//MACÐ­ÒéÍ·
+	uint8_t mac_frame_len;	//MACÐ­ÒéÊý¾Ý³¤¶È
+	uint8_t mac_len;		//MACÊý¾Ý³¤¶È
+    uint8_t mac[8];     	//Éè±¸MACµØÖ·
+	uint8_t mac_crc_h;     	//MACÐ­ÒéCRC
+	uint8_t mac_crc_l;     	//MACÐ­ÒéCRC
+
+	//uint8_t mac[8];     //设备MAC地址
     uint8_t aes[16];    //密钥
     uint8_t addr_DA;    //逻辑地址
     uint8_t addr_GA[3]; //群众地址
@@ -45,13 +52,13 @@ typedef struct OldDevice_
 
 
 extern DeviceInfo_t deviceInfo;
-extern OldDevice_t 	lodDevice;
+extern OldDevice_t 	oldDevice;
 void LowPowerDeviceInit(void);
 uint8_t  LowPowerDeviceInset(uint8_t mac_bit7,uint8_t addr);
 
-void LowPowerDeviceDelete(uint8_t addr);
 uint8_t  LowPowerDeviceMach(uint8_t addr);
 void LowPowerDeviceWakeUp(uint8_t ch);
 uint8_t IsLowPowerDevice(uint8_t mac_bit7);
+void LowPowerDeviceDelete(void);
 
 #endif

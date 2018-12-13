@@ -4,6 +4,8 @@
 
 
 DeviceInfo_t deviceInfo;
+
+Device_Match_t sleep_device;     //低功耗设备
 /*
 *********************************************************************************************************
 *  函 数 名: vDeviceInfoInit
@@ -98,14 +100,14 @@ void  vDeviceMatchNet(uint8_t *buff,uint8_t len)
 	if(uxIsLowPowerDevice(*(mac+7)) == 1)				//低功耗设备
 	{
 		DebugPrintf("\n低功耗设备配网");	
-		
+		LowPowerDeviceWakeUp(Default_Channel);		//唤醒低功耗无线设备
 	}
 	else   //普通设备
 	{
 		DebugPrintf("\n普通设备配网");
-	    xQueueSend(xQueueWirelessTx, &queueMsg, (TickType_t)10);			//直接发到无线发射任务
+	    
 	}
-	
+	xQueueSend(xQueueWirelessTx, &queueMsg, (TickType_t)10);			//直接发到无线发射任务
 	DebugSendBytes(queueMsg.msg,queueMsg.len);
 }
 
@@ -156,12 +158,32 @@ void vDeviceMacReport(uint8_t *cmd,uint8_t len ,uint8_t *mac)
 */
 void vDeviceListSave(uint8_t *list,uint8_t len)
 {	 
-	if(len>225)return ;		//传入的参数列表长度过大
+	if(len>DEVICE_NUM_MAX)return ;		//传入的参数列表长度过大
 	deviceInfo.match.deviceNum = len;
 	
 	memcpy(deviceInfo.match.deviceBuff,list,len);
 	STMFLASH_Write(DEVICE_MATCH_SAVE_ADDR,(uint16_t*)&deviceInfo.match,sizeof(deviceInfo.match));
 }
+
+
+/**
+*********************************************************************************************************
+*  函 数 名: AES_Init
+*  功能说明: 密文初始化
+*  形    参: 无
+*  返 回 值: 无
+*********************************************************************************************************
+*/
+void AES_Init(void)
+{
+	//计算出密文，存放在aes_w，供加解密用
+	memcpy(&aes_out[2*RsaByte_Size],deviceInfo.aes_field.aes,16);
+	memcpy(&aes_out[3*RsaByte_Size],deviceInfo.aes_field.addr_GA,3);
+	
+	Rsa_Decode(aes_out);  
+	key_expansion(aes_out, aes_w);  
+}
+
 
 
 

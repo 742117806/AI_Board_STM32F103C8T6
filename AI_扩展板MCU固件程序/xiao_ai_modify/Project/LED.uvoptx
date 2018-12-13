@@ -155,34 +155,18 @@
         <Bp>
           <Number>0</Number>
           <Type>0</Type>
-          <LineNumber>406</LineNumber>
+          <LineNumber>1006</LineNumber>
           <EnabledFlag>1</EnabledFlag>
-          <Address>134233826</Address>
+          <Address>134239430</Address>
           <ByteObject>0</ByteObject>
           <HtxType>0</HtxType>
           <ManyObjects>0</ManyObjects>
           <SizeOfObject>0</SizeOfObject>
           <BreakByAccess>0</BreakByAccess>
           <BreakIfRCount>1</BreakIfRCount>
-          <Filename>E:\宸ヤ綔椤圭洰\灏廇I鎵╁睍鏉?AI_鎵╁睍鏉縈CU鍥轰欢绋嬪簭\xiao_ai_modify\USER\app.c</Filename>
+          <Filename>E:\宸ヤ綔椤圭洰\灏廇I鎵╁睍鏉?AI_鎵╁睍鏉縈CU鍥轰欢绋嬪簭\xiao_ai_modify\PROTOCOL\protocol.c</Filename>
           <ExecCommand></ExecCommand>
-          <Expression>\\LED\../USER/app.c\406</Expression>
-        </Bp>
-        <Bp>
-          <Number>1</Number>
-          <Type>0</Type>
-          <LineNumber>410</LineNumber>
-          <EnabledFlag>1</EnabledFlag>
-          <Address>134233850</Address>
-          <ByteObject>0</ByteObject>
-          <HtxType>0</HtxType>
-          <ManyObjects>0</ManyObjects>
-          <SizeOfObject>0</SizeOfObject>
-          <BreakByAccess>0</BreakByAccess>
-          <BreakIfRCount>1</BreakIfRCount>
-          <Filename>E:\宸ヤ綔椤圭洰\灏廇I鎵╁睍鏉?AI_鎵╁睍鏉縈CU鍥轰欢绋嬪簭\xiao_ai_modify\USER\app.c</Filename>
-          <ExecCommand></ExecCommand>
-          <Expression>\\LED\../USER/app.c\410</Expression>
+          <Expression>\\LED\../PROTOCOL/protocol.c\1006</Expression>
         </Bp>
       </Breakpoint>
       <WatchWindow1>
@@ -199,12 +183,7 @@
         <Ww>
           <count>2</count>
           <WinNumber>1</WinNumber>
-          <ItemText>led_delay</ItemText>
-        </Ww>
-        <Ww>
-          <count>3</count>
-          <WinNumber>1</WinNumber>
-          <ItemText>temp</ItemText>
+          <ItemText>pframe+index</ItemText>
         </Ww>
       </WatchWindow1>
       <MemoryWindow1>

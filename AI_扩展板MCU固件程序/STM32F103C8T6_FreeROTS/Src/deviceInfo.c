@@ -6,7 +6,7 @@
 //设备信息
 DeviceInfo_t  deviceInfo;
 
-OldDevice_t 	lodDevice = {
+OldDevice_t 	oldDevice = {
     .num = 0,
     .buff = {0},
 };
@@ -77,18 +77,29 @@ uint8_t  LowPowerDeviceInset(uint8_t mac_bit7,uint8_t addr)
 	return 0;
 }
 
-void LowPowerDeviceDelete(uint8_t addr)
+
+void LowPowerDeviceDelete(void)
 {
 	uint8_t i=0;
-	for(i=0;i<100;i++)
+	uint8_t j = 0;
+	
+
+	for(j=0;j<100;j++)
 	{
-		if(lowPowerDevice[i] == addr)
+		for(i=0;i<deviceInfo.deviceNum;i++)
 		{
-			lowPowerDevice[i] =  0;
-			STMFLASH_Write(LOW_PWR_DEVICE_ADDR,(uint16_t*)lowPowerDevice,50);
-			break;
+			if(lowPowerDevice[j] == deviceInfo.deviceBuff[i])
+			{
+				break;
+			}
+		}
+		if(i ==deviceInfo.deviceNum)
+		{
+			lowPowerDevice[j] = 0; 
 		}
 	}
+	STMFLASH_Write(LOW_PWR_DEVICE_ADDR,(uint16_t*)lowPowerDevice,50);
+
 }
 
 uint8_t  LowPowerDeviceMach(uint8_t addr)
@@ -108,9 +119,10 @@ uint8_t  LowPowerDeviceMach(uint8_t addr)
 void LowPowerDeviceWakeUp(uint8_t ch)
 {
 	uint8_t i = 0;
-	for(i=0;i<20;i++)
+	for(i=0;i<17;i++)
 	{
-		Si4438_Transmit_Start(&Wireless_Buf,ch,(uint8_t*)"123", 3);
+		Si4438_Transmit_Start(&Wireless_Buf,ch,(uint8_t*)"1", 1);
+		//while(WIRELESS_STATUS != Wireless_TX_Finish);
 		delay_ms(25);
 	}
 }

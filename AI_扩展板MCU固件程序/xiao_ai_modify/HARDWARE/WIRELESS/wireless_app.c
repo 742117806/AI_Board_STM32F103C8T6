@@ -106,24 +106,29 @@ void Si4438_Interrupt_Handler(WLS *pWL)
         pWL->Wireless_PacketLength = pWL->Wireless_FrameHeader[0] - 3;
         pWL->Wireless_ChannelNumber = pWL->Wireless_FrameHeader[1];
         WIRELESS_STATUS = Wireless_RX_Finish;
+
         WirelessRx_Timeout_Cnt = 0;
     }
 
     else if ((temp_int & 0x01) == 0x01) //receive start
     {
-        if (RECEIVE_TIMES == 0)
-        {
-            Read_RxFifo(&pWL->Wireless_FrameHeader[0], 4);
-            Read_RxFifo(&pWL->Wireless_RxData[0], RX_THRESHOLD - 4);
-            RECEIVE_REMAIN = (pWL->Wireless_FrameHeader[0] + 1) - RX_THRESHOLD;
-            RECEIVE_TIMES = 1;
-        }
-        else
-        {
-            Read_RxFifo(&pWL->Wireless_RxData[RX_THRESHOLD * RECEIVE_TIMES - 4], RX_THRESHOLD);
-            RECEIVE_REMAIN -= RX_THRESHOLD;
-            RECEIVE_TIMES++;
-        }
+		if(WIRELESS_STATUS != Wireless_RX_Finish)
+		{
+			if (RECEIVE_TIMES == 0)
+			{
+				
+				Read_RxFifo(&pWL->Wireless_FrameHeader[0], 4);
+				Read_RxFifo(&pWL->Wireless_RxData[0], RX_THRESHOLD - 4);
+				RECEIVE_REMAIN = (pWL->Wireless_FrameHeader[0] + 1) - RX_THRESHOLD;
+				RECEIVE_TIMES = 1;
+			}
+			else
+			{
+				Read_RxFifo(&pWL->Wireless_RxData[RX_THRESHOLD * RECEIVE_TIMES - 4], RX_THRESHOLD);
+				RECEIVE_REMAIN -= RX_THRESHOLD;
+				RECEIVE_TIMES++;
+			}
+		}
     }
 
     else if ((temp_int & 0x20) == 0x20) //send finish

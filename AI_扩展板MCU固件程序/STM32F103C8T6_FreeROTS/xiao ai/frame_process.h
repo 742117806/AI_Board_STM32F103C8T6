@@ -43,7 +43,7 @@ Rev_0218  修复无线通信时MCU不响应中断，接收会终止的bug，更改TX的发送流程    2018
 Rev_0301  使用STM32F103C8T6 功能延续前一版本
 */
 
-#define Version_Number 0x0302
+#define Version_Number 0x0303
 
 /***********************************************************************/
 #define Devece_Attrs 1 //本体为1， 节点为0

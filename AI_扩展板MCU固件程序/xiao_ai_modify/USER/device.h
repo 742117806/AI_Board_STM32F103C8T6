@@ -5,12 +5,22 @@
 #include "includes.h"
 
 #define Version_Number 0x0302
+#define DEVICE_NUM_MAX	225
 
- //保存设备信息的首地址
+ //保存设备信息的首地址(最后2K的开始地址为0x0800F800)
 #define DEVICE_INFO_SAVE_ADDR    0x0800F840
 #define DEVICE_MAC_SAVE_ADDR	 DEVICE_INFO_SAVE_ADDR
 #define DEVICE_AES_SAVE_ADDR	 DEVICE_MAC_SAVE_ADDR + sizeof(Device_mac_t)
 #define DEVICE_MATCH_SAVE_ADDR   DEVICE_AES_SAVE_ADDR + sizeof(Device_aes_t)
+//0x080E800 作为低功耗设备逻辑地址
+#define DEVICE_SEELP_ADDR	 0x080E800
+
+//typedef struct mac_link_da_
+//{
+//	uint8_t mac[8];		//MAC地址
+//	uint8_t addr;        //设备分配的逻辑地址
+//    uint8_t na;			//无效，为了对齐字节
+//}mac_link_da_t;
 
 /*
 设备信息
@@ -40,7 +50,7 @@ typedef struct Device_aes_
 typedef struct Device_Match_
 {
 	uint8_t deviceNum;      //配网的设备个数
-	uint8_t deviceBuff[225]; //已经配网的设备地址
+	uint8_t deviceBuff[DEVICE_NUM_MAX]; //已经配网的设备地址
 }Device_Match_t;
 
 typedef struct DeviceInfo_
@@ -54,6 +64,7 @@ typedef struct DeviceInfo_
 
 
 extern DeviceInfo_t deviceInfo;
+extern Device_Match_t sleep_device;     //低功耗设备
 
 void  vDeviceMatchNet(uint8_t *buff,uint8_t len);
 void vDeviceInfoInit(void);
@@ -62,6 +73,7 @@ void vLowPowerDeviceWakeUp(uint8_t ch);
 void vVersionReport(uint8_t *cmd,uint8_t len ,uint16_t version);
 void vDeviceListSave(uint8_t *list,uint8_t len);
 void vDeviceMacReport(uint8_t *cmd,uint8_t len ,uint8_t *mac);
+void AES_Init(void);
 
 #endif
  

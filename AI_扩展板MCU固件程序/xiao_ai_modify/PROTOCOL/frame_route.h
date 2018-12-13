@@ -2,6 +2,7 @@
 #define __ROUTE_H
 
 #include "includes.h"
+#include "app.h"
 
 //路由层协议帧控制域结构
 typedef struct FRAME_ROUTER_CTRL_
@@ -99,12 +100,28 @@ typedef struct FRAME_ROUTER_EXT_CMD_
 
 } FRAME_ROUTER_EXT_CMD_t;
 
+
+typedef struct MASTER_DEVICE_RSSI_
+{
+   uint8_t addr;
+   uint8_t rssi;
+}MASTER_DEVICE_RSSI_t;
 uint8_t FrameRouterCompose_ext(uint8_t *desAddrMAC,
                                uint8_t *srcData,
                                uint8_t srcLen,
                                uint8_t *outData,
                                uint8_t *routerTab,
                                uint8_t routerLen);
+uint8_t FrameRouterCompose(
+    uint8_t desAddr,
+    uint8_t *srcData,
+    uint8_t srcLen,
+    uint8_t *outData,
+    uint8_t *routerTab,
+    uint8_t routerLen);
+	
+
+void  vRouteFrameMatchProcess(Device_Match_t *match,QUEUE_WIRELESS_SEND_t *pMsg);						  
 
 
 #endif

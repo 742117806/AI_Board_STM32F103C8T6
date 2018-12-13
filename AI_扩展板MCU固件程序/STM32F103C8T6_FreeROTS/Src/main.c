@@ -290,7 +290,7 @@ void FrameRouterDataProcess(uint8_t *rx_buff, uint8_t rx_len)
 
     QUEUE_WIRELESS_SEND_t queue_wireless_send;
 
-    if((frameData->len/2) < 70)
+    if((frameData->len/2) <= 70)
     {
         FrameRouteData_74Convert((FRAME_ROUTER_CMD_t*)rx_buff,rx_len,&rx_len,0);
     }
@@ -461,6 +461,8 @@ void FrameRouterDataProcess(uint8_t *rx_buff, uint8_t rx_len)
 //0xAC开头的协议帧处理
 void Frame1DataProcess(uint8_t *rx_buff, uint8_t rx_len)
 {
+	uint8_t i;
+	uint8_t exist = 0;
     uint8_t out_len;
     uint8_t indexType;
     uint16_t indexCmd;
@@ -469,7 +471,11 @@ void Frame1DataProcess(uint8_t *rx_buff, uint8_t rx_len)
 
     if(userFrame->Ctrl.c_AFN == 0)
     {
-        FrameData_74Convert((FRAME_CMD_t*)rx_buff,rx_len,&out_len,0); //解码
+		if(userFrame->DataLen < 100)
+		{
+			FrameData_74Convert((FRAME_CMD_t*)rx_buff,rx_len,&out_len,0); //解码
+		}
+		
         rx_len = out_len;		//解码后长度
     }
 
@@ -481,25 +487,12 @@ void Frame1DataProcess(uint8_t *rx_buff, uint8_t rx_len)
     {
 
         out_len = Frame_Compose(&userFrame->FameHead);
-//		if(DeviceIsExit(userFrame->addr_DA) == 1)
-//		{
-//			UpUart_DataTx(&userFrame->FameHead, out_len, 0);
-//		}
 
-
-        if(memcmp(userFrame->userData.Index,Set_LogicAddr_Id,3)==0) // 配网
+        if((DeviceIsExit(userFrame->addr_DA) == 1)||                 //已经配网设备
+			(memcmp(userFrame->userData.Index,Set_LogicAddr_Id,3)==0)) // 配网
         {
             UpUart_DataTx(&userFrame->FameHead, out_len, 0);
         }
-        else
-        {
-            if(DeviceIsExit(userFrame->addr_DA) == 1)
-            {
-                UpUart_DataTx(&userFrame->FameHead, out_len, 0);
-            }
-        }
-
-
 
         if (userFrame->Ctrl.eventFlag == 0) //普通帧
         {
@@ -516,11 +509,26 @@ void Frame1DataProcess(uint8_t *rx_buff, uint8_t rx_len)
             {
             case 0xFF:
                 if( indexCmd == 0xFFFF)
-                {
-                    lodDevice.buff[lodDevice.num] = userFrame->addr_DA;
-                    lodDevice.num ++;
-                    STMFLASH_Write(OLD_DEVICE_ADDR, (uint16_t *)&lodDevice, (sizeof(OldDevice_t) + 1) / 2); //+1和/2是为了2字节对齐
-                    xTaskNotify(NetCreateTaskHandle, (1ul << 1), eSetValueWithOverwrite);
+                {    
+					if(userFrame->Ctrl.dir == 1)       //从站回来的数据
+					{
+						for(i=0;i<100;i++)
+						{
+							if(oldDevice.buff[i] == userFrame->addr_DA)		//设备已经存在
+							{
+								exist = 1;
+								break;
+							}
+						}
+						if(exist == 0)
+						{
+							oldDevice.buff[oldDevice.num] = userFrame->addr_DA;
+							oldDevice.num ++;
+							STMFLASH_Write(OLD_DEVICE_ADDR, (uint16_t *)&oldDevice, (sizeof(OldDevice_t) + 1) / 2); //+1和/2是为了2字节对齐
+						}
+						
+						xTaskNotify(NetCreateTaskHandle, (1ul << 1), eSetValueWithOverwrite);
+					}
                 }
                 break;
             default:
@@ -538,17 +546,8 @@ void Frame1DataProcess(uint8_t *rx_buff, uint8_t rx_len)
                 queue_wireless_send.len = Encrypt_Convert(&userFrame->FameHead, queue_wireless_send.len, 0); //加密
             }
 
-
             memcpy(queue_wireless_send.msg,&userFrame->FameHead,queue_wireless_send.len);
 
-			FrameData_74Convert((FRAME_CMD_t*)queue_wireless_send.msg,queue_wireless_send.len,&queue_wireless_send.len,1);	//编码
-
-//			queue_wireless_send.len = FrameRouterCompose(userFrame->addr_DA,
-//																								 &userFrame->FameHead,
-//																								 userFrame->DataLen + 11,
-//																								 queue_wireless_send.msg,
-//																								 routerTabAck.table,
-//																								 routerTabAck.len);
             queue_wireless_send.toCh = Wireless_Channel[0];
 
             xQueueSend(xQueueWirelessTask, &queue_wireless_send, (TickType_t)10);
@@ -781,7 +780,7 @@ void Local_CmdProcess(FRAME_CMD_t *frameCmd)
             STMFLASH_Write(DEVICE_INFO_BASH_ADDR, (uint16_t *)&deviceInfo, (sizeof(deviceInfo) + 1) / 2);
             xTaskResumeAll(); //关闭任务调度锁
 
-            OldDeviceRef(&lodDevice,deviceInfo.deviceBuff);
+            OldDeviceRef(&oldDevice,deviceInfo.deviceBuff);
 
             FrameCmdLocalAck(frameCmd, 0, 0);
             break;
@@ -791,8 +790,16 @@ void Local_CmdProcess(FRAME_CMD_t *frameCmd)
         }
         break;
     case 0x00:
-
-        break;
+		switch (indexCmd)
+        {
+		case 0x0000:
+			FrameCmdLocalAck(frameCmd, deviceInfo.mac, 8);
+			break;
+		default:
+            FrameCmdLocalAck(frameCmd, 0, 0);
+            break;
+		}
+		break;
     case 0x01:
         switch (indexCmd)
         {
@@ -922,12 +929,13 @@ void UartRx_Process(UpCom_Rx_TypDef *prx_ubuf, DevicePara_TypDef *p_device)
 								if(LowPowerDeviceMach(frameCmd->addr_DA)==1)
 								{
 									LowPowerDeviceWakeUp(Wireless_Channel[0]);
+									//LowPowerDeviceWakeUp(Default_Channel);
 								}
-                                if(DeviceVsnJudge(frameCmd->addr_DA,lodDevice.buff,lodDevice.num) == 1)   //是否为旧电器
+                                if(DeviceVsnJudge(frameCmd->addr_DA,oldDevice.buff,oldDevice.num) == 1)   //是否为旧电器
                                 {
 
                                     memcpy(queue_temp.msg, &frameCmd->FameHead, send_len);
-                                    FrameData_74Convert((FRAME_CMD_t*)queue_temp.msg,send_len,&send_len,1);
+                                    //FrameData_74Convert((FRAME_CMD_t*)queue_temp.msg,send_len,&send_len,1);
 
 
                                 }
@@ -1033,10 +1041,10 @@ void MacFrame_Process(UpCom_Rx_TypDef *p_source)
     {
         if (p_source->Frame_Data[1] == MACWrite_Cmd_Request)
         {
-            if (deviceInfo.mac_exist == 0) //只能烧一次
+            if (deviceInfo.mac_h != AESFreamHeader) //只能烧一次
             {
                 memcpy(deviceInfo.mac,&p_source->Frame_Data[3],8);
-                deviceInfo.mac_exist = 1;
+                deviceInfo.mac_h = AESFreamHeader;
                 STMFLASH_Write(DEVICE_INFO_BASH_ADDR, (uint16_t *)&deviceInfo, (sizeof(deviceInfo)+1)/2);
                 STMFLASH_Read(DEVICE_INFO_BASH_ADDR, (uint16_t *)&deviceInfo,  (sizeof(deviceInfo)+1)/2);
                 if (memcmp(deviceInfo.mac, &p_source->Frame_Data[3], 8) == 0)
@@ -1046,7 +1054,7 @@ void MacFrame_Process(UpCom_Rx_TypDef *p_source)
                 }
                 else
                 {
-                    deviceInfo.mac_exist = 0;
+                    deviceInfo.mac_h = 0;
                     STMFLASH_Write(DEVICE_INFO_BASH_ADDR, (uint16_t *)&deviceInfo, (sizeof(deviceInfo)+1)/2);
                     send_buff[1] = MACWrite_NO_Response;
                     send_buff[3] = 0x00;
@@ -1081,10 +1089,10 @@ void MacAddr_Read(void)
     if((Local_MAC_Addr[0] == 0x68)&&(Local_MAC_Addr[0] == 0x20))    //旧版本保存了mac地址
     {
         memcpy(deviceInfo.mac,&Local_MAC_Addr[3],8);
-        deviceInfo.mac_exist = 1;
+        deviceInfo.mac_h = AESFreamHeader;
         STMFLASH_Write(DEVICE_INFO_BASH_ADDR, (uint16_t *)&deviceInfo, (sizeof(deviceInfo)+1)/2);
     }
-    while(deviceInfo.mac_exist == 0)
+    while(deviceInfo.mac_h != AESFreamHeader)
     {
         MacFrame_Process(&UpCom_RxBuf);
         delay_cnt++;
@@ -1117,21 +1125,21 @@ void DeviceInfoInit(void)
 {
     uint32_t delay_cnt = 0;
 
-    STMFLASH_Read(MAC_EAddr, (uint16_t *)Local_MAC_Addr, (MAC_Data_Len + 5 + 1) / 2);
-    if((Local_MAC_Addr[0] == 0x68)&&(Local_MAC_Addr[1] == 0x20))    //旧版本保存了mac地址
-    {
-        memcpy(deviceInfo.mac,&Local_MAC_Addr[3],8);
-        deviceInfo.mac_exist = 1;
-        STMFLASH_Write(DEVICE_INFO_BASH_ADDR, (uint16_t *)&deviceInfo, (sizeof(deviceInfo)+1)/2);
-    }
+//    STMFLASH_Read(MAC_EAddr, (uint16_t *)Local_MAC_Addr, (MAC_Data_Len + 5 + 1) / 2);
+//    if((Local_MAC_Addr[0] == 0x68)&&(Local_MAC_Addr[1] == 0x20))    //旧版本保存了mac地址
+//    {
+//        memcpy(deviceInfo.mac,&Local_MAC_Addr[3],8);
+//        deviceInfo.mac_h = AESFreamHeader;
+//        STMFLASH_Write(DEVICE_INFO_BASH_ADDR, (uint16_t *)&deviceInfo, (sizeof(deviceInfo)+1)/2);
+//    }
 
     STMFLASH_Read(DEVICE_INFO_BASH_ADDR, (uint16_t *)&deviceInfo, (sizeof(deviceInfo) + 1) / 2); //读出设备信息
-    if(deviceInfo.mac_exist == 0xFF)
+    if(deviceInfo.mac_h != AESFreamHeader)
     {
         memset(&deviceInfo,0,sizeof(deviceInfo));
     }
 
-    while(deviceInfo.mac_exist == 0)
+    while(deviceInfo.mac_h != AESFreamHeader)
     {
         MacFrame_Process(&UpCom_RxBuf);
         delay_cnt++;
@@ -1203,11 +1211,12 @@ int main(void)
     SN3218_Init();
     DeviceInfoInit();
     Aes_Key_Read();
-    STMFLASH_Read(OLD_DEVICE_ADDR, (uint16_t *)&lodDevice, sizeof(OldDevice_t)/ 2); //+1和/2是为了2字节对齐
-    if(lodDevice.num == 0xFF)
+    STMFLASH_Read(OLD_DEVICE_ADDR, (uint16_t *)&oldDevice, sizeof(OldDevice_t)/ 2); //+1和/2是为了2字节对齐
+    if(oldDevice.num == 0xFF)
     {
-        lodDevice.num = 0;
-        STMFLASH_Write(OLD_DEVICE_ADDR, (uint16_t *)&lodDevice, (sizeof(OldDevice_t) + 1) / 2); //+1和/2是为了2字节对齐
+        oldDevice.num = 0;
+		memset(oldDevice.buff,0x00,100);
+        STMFLASH_Write(OLD_DEVICE_ADDR, (uint16_t *)&oldDevice, (sizeof(OldDevice_t) + 1) / 2); //+1和/2是为了2字节对齐
     }
     LowPowerDeviceInit();
     SecretKey_Process(&deviceInfo); //计算出密文，存放在aes_w，供加解密用

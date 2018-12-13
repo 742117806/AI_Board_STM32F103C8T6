@@ -1,6 +1,8 @@
 #ifndef __PROTOCOL_H
 #define __PROTOCOL_H	 
 #include "includes.h"
+#include "wireless_drv.h"
+#include "wireless_app.h"
 //////////////////////////////////////////////////////////////////////////////////	 
 								  
 ////////////////////////////////////////////////////////////////////////////////// 
@@ -77,6 +79,11 @@
 #define GK_Data_Len (16 * 2)
 #define GA_Data_Len 3
 
+//路由协议帧头帧尾定义
+#define ROUTER_FRAME_HDADER 0x69
+#define ROUTER_FRAME_END	0x96
+
+////////////////////////////////协议帧的宏定义/////////////////////////////////////////////////
 
 
 
@@ -152,6 +159,7 @@ typedef struct
 
 extern sUartRx_t sUart1Rx;
 extern uint8_t frameNume;
+extern uint8_t wait_frameNum;		//等待的回应的帧号
 
 //各个命令的数据标识
 extern const uint8_t CMD_INIT[][3];
@@ -164,6 +172,7 @@ void vUartRxFrame(uint8_t rx_data, sUartRx_t *pu_buf);
 void vUartFrameProcess(sUartRx_t *pbuff);
 void vUartAesProcess(sUartRx_t *pbuff);
 void FrameCmdLocalAck(uint8_t *cmdBuff,uint8_t cmdLen,uint8_t *userDat,uint8_t userLen);
+void vWirelessFrameDeal(WLS *wireless);
 
 
 		 				    

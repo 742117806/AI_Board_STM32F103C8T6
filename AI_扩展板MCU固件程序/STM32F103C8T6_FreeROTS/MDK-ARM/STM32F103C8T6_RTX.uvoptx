@@ -151,7 +151,72 @@
           <Name>(105=-1,-1,-1,-1,0)</Name>
         </SetRegEntry>
       </TargetDriverDllRegistry>
-      <Breakpoint/>
+      <Breakpoint>
+        <Bp>
+          <Number>0</Number>
+          <Type>0</Type>
+          <LineNumber>792</LineNumber>
+          <EnabledFlag>1</EnabledFlag>
+          <Address>134231522</Address>
+          <ByteObject>0</ByteObject>
+          <HtxType>0</HtxType>
+          <ManyObjects>0</ManyObjects>
+          <SizeOfObject>0</SizeOfObject>
+          <BreakByAccess>0</BreakByAccess>
+          <BreakIfRCount>1</BreakIfRCount>
+          <Filename>E:\宸ヤ綔椤圭洰\灏廇I鎵╁睍鏉?AI_鎵╁睍鏉縈CU鍥轰欢绋嬪簭\STM32F103C8T6_FreeROTS\Src\main.c</Filename>
+          <ExecCommand></ExecCommand>
+          <Expression>\\STM32F103C8T6_V0303_490M_FreeRTOS\../Src/main.c\792</Expression>
+        </Bp>
+        <Bp>
+          <Number>1</Number>
+          <Type>0</Type>
+          <LineNumber>921</LineNumber>
+          <EnabledFlag>1</EnabledFlag>
+          <Address>134237404</Address>
+          <ByteObject>0</ByteObject>
+          <HtxType>0</HtxType>
+          <ManyObjects>0</ManyObjects>
+          <SizeOfObject>0</SizeOfObject>
+          <BreakByAccess>0</BreakByAccess>
+          <BreakIfRCount>1</BreakIfRCount>
+          <Filename>E:\宸ヤ綔椤圭洰\灏廇I鎵╁睍鏉?AI_鎵╁睍鏉縈CU鍥轰欢绋嬪簭\STM32F103C8T6_FreeROTS\Src\main.c</Filename>
+          <ExecCommand></ExecCommand>
+          <Expression>\\STM32F103C8T6_V0303_490M_FreeRTOS\../Src/main.c\921</Expression>
+        </Bp>
+        <Bp>
+          <Number>2</Number>
+          <Type>0</Type>
+          <LineNumber>953</LineNumber>
+          <EnabledFlag>1</EnabledFlag>
+          <Address>134237484</Address>
+          <ByteObject>0</ByteObject>
+          <HtxType>0</HtxType>
+          <ManyObjects>0</ManyObjects>
+          <SizeOfObject>0</SizeOfObject>
+          <BreakByAccess>0</BreakByAccess>
+          <BreakIfRCount>1</BreakIfRCount>
+          <Filename>E:\宸ヤ綔椤圭洰\灏廇I鎵╁睍鏉?AI_鎵╁睍鏉縈CU鍥轰欢绋嬪簭\STM32F103C8T6_FreeROTS\Src\main.c</Filename>
+          <ExecCommand></ExecCommand>
+          <Expression>\\STM32F103C8T6_V0303_490M_FreeRTOS\../Src/main.c\953</Expression>
+        </Bp>
+        <Bp>
+          <Number>3</Number>
+          <Type>0</Type>
+          <LineNumber>953</LineNumber>
+          <EnabledFlag>1</EnabledFlag>
+          <Address>134237492</Address>
+          <ByteObject>0</ByteObject>
+          <HtxType>0</HtxType>
+          <ManyObjects>0</ManyObjects>
+          <SizeOfObject>0</SizeOfObject>
+          <BreakByAccess>0</BreakByAccess>
+          <BreakIfRCount>1</BreakIfRCount>
+          <Filename>E:\宸ヤ綔椤圭洰\灏廇I鎵╁睍鏉?AI_鎵╁睍鏉縈CU鍥轰欢绋嬪簭\STM32F103C8T6_FreeROTS\Src\main.c</Filename>
+          <ExecCommand></ExecCommand>
+          <Expression>\\STM32F103C8T6_V0303_490M_FreeRTOS\../Src/main.c\953</Expression>
+        </Bp>
+      </Breakpoint>
       <WatchWindow1>
         <Ww>
           <count>0</count>
@@ -166,7 +231,7 @@
         <Ww>
           <count>2</count>
           <WinNumber>1</WinNumber>
-          <ItemText>lodDevice</ItemText>
+          <ItemText>oldDevice</ItemText>
         </Ww>
         <Ww>
           <count>3</count>
@@ -203,12 +268,22 @@
           <WinNumber>1</WinNumber>
           <ItemText>lowPowerDevice</ItemText>
         </Ww>
+        <Ww>
+          <count>10</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>queue_temp.msg</ItemText>
+        </Ww>
+        <Ww>
+          <count>11</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>queueUartMsg</ItemText>
+        </Ww>
       </WatchWindow1>
       <MemoryWindow1>
         <Mm>
           <WinNumber>1</WinNumber>
           <SubType>0</SubType>
-          <ItemText>0x800F800</ItemText>
+          <ItemText>0x0800F840</ItemText>
           <AccSizeX>0</AccSizeX>
         </Mm>
       </MemoryWindow1>
@@ -218,7 +293,7 @@
       <DebugFlag>
         <trace>0</trace>
         <periodic>1</periodic>
-        <aLwin>1</aLwin>
+        <aLwin>0</aLwin>
         <aCover>0</aCover>
         <aSer1>0</aSer1>
         <aSer2>0</aSer2>
@@ -629,7 +704,7 @@
 
   <Group>
     <GroupName>Drivers/BSP</GroupName>
-    <tvExp>1</tvExp>
+    <tvExp>0</tvExp>
     <tvExpOptDlg>0</tvExpOptDlg>
     <cbSel>0</cbSel>
     <RteFlg>0</RteFlg>
@@ -845,7 +920,7 @@
       <GroupNumber>7</GroupNumber>
       <FileNumber>45</FileNumber>
       <FileType>1</FileType>
-      <tvExp>1</tvExp>
+      <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
       <bDave2>0</bDave2>
       <PathWithFileName>../Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_4.c</PathWithFileName>

@@ -6,7 +6,7 @@
 /*********************任务相关定义和声明************************/
 
 #define START_TASK_PRIO		1 			//任务优先级
-#define START_STK_SIZE 		256 		//任务堆栈大小	 
+#define START_STK_SIZE 		320 		//任务堆栈大小	 
 TaskHandle_t StartTask_Handler;    		//任务句柄
 void vStartTask(void *pvParameters);   	//任务函数
 
@@ -16,12 +16,12 @@ TaskHandle_t LedTask_Handler;    		//任务句柄
 void vLedTask(void *pvParameters);   	//任务函数
 
 #define NET_TASK_PRIO		3 			//任务优先级
-#define NET_STK_SIZE 		128 		//任务堆栈大小	 
+#define NET_STK_SIZE 		256 		//任务堆栈大小	 
 TaskHandle_t NetTask_Handler;    		//任务句柄
 void vNetTask(void *pvParameters);   	//任务函数
 
 #define WIRELESS_RX_TASK_PRIO		4 			//任务优先级
-#define WIRELESS_RX_STK_SIZE 		128 		//任务堆栈大小	 
+#define WIRELESS_RX_STK_SIZE 		256 		//任务堆栈大小	 
 TaskHandle_t WirelessRxTask_Handler;    		//任务句柄
 void vWirelessRxTask(void *pvParameters);   	//任务函数
 
@@ -158,6 +158,8 @@ static void vStartTask(void *pvParameters)
 	SN3218_Init();
 	vAppWirelessInit();
 	vDeviceInfoInit();
+	AES_Init();                     //必须放到vDeviceInifoInit()后面
+	//LowPowerDeviceInit();			//必须放到vDeviceInifoInit()后面  ，调用死机
 	AppQueueCreate();               //创建邮箱
 	AppSemaphoreCreate();
 	AppTaskCreate();				//创建任务	
@@ -215,23 +217,29 @@ static void vNetTask(void *pvParameters)
 { 
 	BaseType_t xResult;
     QUEUE_WIRELESS_SEND_t queueMsg;
-	uint8_t i;
+	uint8_t route_flag = 0;//需要进行路由配网
+
 	
     while(1) 
     { 
 		xResult = xQueueReceive(xQueueNetTask,    	/* 消息队列句柄 */
 								(void *)&queueMsg, 		/* 存储接收到的数据到变量queueMsg */
-								(TickType_t)5);        	/* 设置阻塞时间5个tick */
+								(TickType_t)30);        	/* 设置阻塞时间5个tick */
 		if (xResult == pdPASS) 							/* 成功接收，并通过串口将数据打印出来 */
         {
 			DebugPrintf("\n接收到无线配网数据");
-			for(i=0;i<10;i++)
+		    //vRouteFrameMatchProcess(&deviceInfo.match,&queueMsg);
+			
+			xQueueSend(xQueueWirelessTx,&queueMsg, (TickType_t)10);			//发到无线发送任务		
+		}
+		else
+		{
+		    if(route_flag == 1)
 			{
-				xQueueSend(xQueueWirelessTx, &queueMsg, (TickType_t)10);			//直接发到无线发射任务	
-				vTaskDelay(300);
+				DebugPrintf("\n接收超时，执行路由配网");
 			}
 		}
-        vTaskDelay(30); 
+        vTaskDelay(1); 
     } 
 } 
 /* 
@@ -247,7 +255,7 @@ static void vWirelessTxTask(void *pvParameters)
 { 
 	BaseType_t xResult;
     QUEUE_WIRELESS_SEND_t queueMsg;
-
+    uint8_t frame_len;
     while(1) 
     { 
 		xResult = xQueueReceive(xQueueWirelessTx,    	/* 消息队列句柄 */
@@ -256,21 +264,25 @@ static void vWirelessTxTask(void *pvParameters)
 		if (xResult == pdPASS) 							/* 成功接收，并通过串口将数据打印出来 */
         {
 			DebugPrintf("\n无线数据邮箱接收成功");
-			if(queueMsg.msg[2]<70)
+				//74编码
+			if((queueMsg.msg[0]==0x69)&&(queueMsg.msg[1]==0x69))
 			{
-				if((queueMsg.msg[0]==0x69)&&(queueMsg.msg[1]==0x69))
+				frame_len = queueMsg.msg[2];
+				if(frame_len<140)
 				{
 					FrameRouteData_74Convert(queueMsg.msg,queueMsg.len,&queueMsg.len,1);
 				}
-				else if(queueMsg.msg[0]==0xAC)
+			}
+			else if(queueMsg.msg[0]==0xAC)
+			{
+				frame_len = queueMsg.msg[Region_DataLenNumber];
+				if(frame_len<70)
 				{
 					FrameData_74Convert(queueMsg.msg,queueMsg.len,&queueMsg.len,1);
 				}
 			}
-				
 			vWirelessSendBytes(queueMsg.toCh,queueMsg.msg,queueMsg.len);
 		}		
-		//DebugPrintf("\nvWirelessTask");
         vTaskDelay(30); 
     } 
 } 

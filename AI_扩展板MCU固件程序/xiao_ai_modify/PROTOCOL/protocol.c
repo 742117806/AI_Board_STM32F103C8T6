@@ -48,6 +48,7 @@ const uint8_t CMD_DEVICE_CTRL[][3]= {
 
 sUartRx_t sUart1Rx;		//定义一个串口协议接收结构体变量
 uint8_t frameNume = 0;		//发送帧命时使用的帧包号（0-15）
+uint8_t wait_frameNum = 0;		//等待的回应的帧号
 
 /**
 *********************************************************************************************************
@@ -337,7 +338,7 @@ static void  vUartFrameCmdInitDeal(uint8_t *buff,uint8_t len)
     case 0xFF00:
         DebugPrintf("\n密文下发");
         vAES_Save(buff,len);
-
+        AES_Init();                 //是密文生效
         break;
     case 0x0001:        //主站要求读取软件版本号
         vVersionReport(buff,len,Version_Number);
@@ -730,6 +731,370 @@ void vUartFrameProcess(sUartRx_t *pbuff)
         pbuff->status = UartRx_FrameHead;
     }
 }
+
+/**
+*********************************************************************************************************
+*  函 数 名: uFrameCmd_CRC_Check
+*  功能说明: 判断无线帧数据是否正确
+*  形    参: @buff 要处理的数据
+			 @len  数据长度
+*  返 回 值: 无
+*********************************************************************************************************
+*/
+eFrameCheckType xWirelessRouterCmdCheck(uint8_t *buff,uint8_t len)
+{
+    uint16_t crc_16;
+    uint8_t crc16_h;
+    uint8_t crc16_l;
+
+    if((buff[0] != ROUTER_FRAME_HDADER)||(buff[1] != ROUTER_FRAME_HDADER))		//帧头是否为0x69 0x69
+        return FRAME_ERR;
+		
+	if((buff[2] + buff[3]) != 0xFF)		//帧长度和长度取反
+        return FRAME_ERR;
+		
+	if((buff[len-2] != ROUTER_FRAME_END)||(buff[len-1] != ROUTER_FRAME_END)) //帧尾是否为0x96 0x96
+		return FRAME_ERR;
+		
+		
+    crc_16 = CRC16_2(buff,len-4);
+    crc16_h = (uint8_t)(crc_16 >> 8);
+    crc16_l = (uint8_t)(crc_16 & 0x00ff);
+    if((crc16_h == buff[len-4])&&(crc16_l == buff[len-3]))
+        return FRAME_OK;
+    else
+        return FRAME_ERR;
+}
+
+
+
+/**
+*********************************************************************************************************
+*  函 数 名: vMastAckToDevice
+*  功能说明: 扩展板应答电器设备
+*  形    参: @buff 接收到电器设备发来的数据
+			 @len  数据长度
+*  返 回 值: 无
+*********************************************************************************************************
+*/
+void vMastAckToDevice(uint8_t *buff,uint8_t len)
+{
+
+	QUEUE_WIRELESS_SEND_t queueMsg;
+	
+	memcpy(queueMsg.msg, buff,len);
+	queueMsg.toCh = Wireless_Channel[0];
+	
+	queueMsg.msg[Region_CmdNumber] &= ~FCMD_DIR_BIT;    //传输方向清零，表示主站发出
+	queueMsg.msg[Region_DataLenNumber] = 0;		//应答数据长度为0
+	//queueMsg.msg[Region_SeqNumber] &= 0xf0;
+	
+	queueMsg.len = Frame_Compose(queueMsg.msg);
+		//加密
+	if((queueMsg.msg[Region_SeqNumber]&FSEQ_ENC_BIT) > 0)
+	{
+	     DebugPrintf("\n需要加密");
+		 
+	     Encrypt_Convert(queueMsg.msg,queueMsg.len ,&queueMsg.len, 1);   //加密
+	}
+	else
+	{
+	    DebugPrintf("\n不用加密");
+	}
+	xQueueSend(xQueueWirelessTx,&queueMsg, (TickType_t)10);			//直接发到无线发射任务			
+}
+
+///**
+//*********************************************************************************************************
+//*  函 数 名: vMastRouterFrameDela
+//*  功能说明: 处理主站发出去的无线数据
+//*  形    参: @buff 要处理的数据
+//			 @len  数据长度
+//*  返 回 值: 无
+//*********************************************************************************************************
+//*/
+//void vMastRouterFrameDela(uint8_t *buff,uint8_t len)
+//{
+//	uint8_t frame_type = 0;  //帧类型(0组网，1通信)
+//	FRAME_ROUTER_SLAVE_CMD_t *pbuff;
+//	
+//	pbuff = (FRAME_ROUTER_SLAVE_CMD_t*)buff;
+//	frame_type = pbuff->ctrl.type;
+//	if(frame_type == 1)  //通信
+//	{
+//		DebugPrintf("\n路由通信帧");
+//	}
+//	else		//组网
+//	{
+//	   DebugPrintf("\n路由组网帧");
+//	} 
+//}
+
+
+///**
+//*********************************************************************************************************
+//*  函 数 名: vSlaveRouterFrameDela
+//*  功能说明: 处理从站发出去的无线数据
+//*  形    参: @buff 要处理的数据
+//			 @len  数据长度
+//*  返 回 值: 无
+//*********************************************************************************************************
+//*/
+//void vSlaveRouterFrameDela(uint8_t *buff,uint8_t len)
+//{
+//	uint8_t frame_type = 0;  //帧类型(0组网，1通信)
+//	FRAME_ROUTER_SLAVE_CMD_t *pbuff;
+//	
+//	pbuff = (FRAME_ROUTER_SLAVE_CMD_t*)buff;
+//	frame_type = pbuff->ctrl.type;
+//	if(frame_type == 1)  //通信
+//	{
+//		DebugPrintf("\n路由通信帧");
+//		vMastAckToDevice(buff,len);
+//	}
+//	else		//组网
+//	{
+//	   DebugPrintf("\n路由组网帧");
+//	} 
+//}
+
+/**
+*********************************************************************************************************
+*  函 数 名: DeviceWireless2Uart()
+*  功能说明: 将收到设备的无线数据经过解码和解密后，转发到串口
+*  形    参: @pframe 收到的电器无线数据
+			@frame_len     收到的电器无线数据长度
+*  返 回 值: 无
+*********************************************************************************************************
+*/
+void DeviceWireless2Uart(uint8_t *pframe, uint8_t frame_len)
+{
+	//解码
+//	if(frame_len<70)
+//	{
+//		if((pframe[0]==0x69)&&(pframe[1]==0x69))
+//		{
+//			FrameRouteData_74Convert(pframe,frame_len,&frame_len,0);
+//		}
+//		else if(pframe[0]==0xAC)
+//		{
+//			FrameData_74Convert(pframe,frame_len,&frame_len,0);
+//		}
+//	}
+//	
+//	//解密
+//	if((pframe[Region_SeqNumber]&FSEQ_ENC_BIT) > 0)
+//	{
+//		 DebugPrintf("\n需要解密");
+//		 
+//		 Encrypt_Convert(pframe,frame_len , &frame_len, 0);   //解密
+//	}
+//	else
+//	{
+//		DebugPrintf("\n不用解密");
+//	}
+	UseComSendBytes(pframe, frame_len);
+}
+
+/**
+*********************************************************************************************************
+*  函 数 名: vUartFrameProcess
+*  功能说明: 处理无线接收到的一帧数据
+*  形    参: @wireless 存放协议数据结构体
+*  返 回 值: 无
+*********************************************************************************************************
+*/
+extern TaskHandle_t StartTask_Handler;
+void vWirelessFrameDeal(WLS *wireless)
+{
+	uint8_t *pframe = wireless->Wireless_RxData;
+	uint8_t frame_len = wireless->Wireless_PacketLength;
+	uint8_t frame_flag = 0;
+	uint8_t cmdUpFlag = 1;		//是否上报到串口
+	uint8_t index = 0;       //应用数据（0xAC协议帧的）开始位置
+	
+	
+	//解码
+	if(xWirelessRouterCmdCheck(pframe,frame_len) == FRAME_OK)              //路由协议
+	{
+		frame_len = pframe[2];
+		if(frame_len<140)
+		{
+			FrameRouteData_74Convert(pframe,wireless->Wireless_PacketLength,&frame_len,0);
+		}
+
+		index = 13+pframe[12];//算出应用数据的开始位置  (0x69协议开始的13个字节+路由表长度)
+        			//解密
+		if(((pframe+index)[Region_SeqNumber]&FSEQ_ENC_BIT) > 0)
+		{
+			 DebugPrintf("\n需要解密");
+			 
+			 Encrypt_Convert(pframe+index,frame_len-index-4 , &frame_len, 0);   //解密
+		}
+		else
+		{
+			DebugPrintf("\n不用解密");
+		}
+		
+		frame_flag =  (pframe[4] & 0x81);                //协议主站从站组网或者通信帧位判断
+		switch(frame_flag)
+		{
+			case 0x00:      //主站组网
+				frame_flag =  (pframe[4] & 0x06);                //心跳，通信模式
+				switch(frame_flag)
+				{
+				    case 0x00:		//非心跳正常功耗帧
+						break;
+					case 0x02:      //非心跳低功耗帧
+						break;
+					case 0x04:      //心跳正常功耗帧
+						cmdUpFlag = 0;       //不用再通过串口发送
+						break;
+					case 0x06:      //心跳低功耗帧
+						break;	
+				}
+				break;
+			case 0x01:		//主站通信
+				frame_flag =  (pframe[4] & 0x06);                //心跳，通信模式
+				switch(frame_flag)
+				{
+				    case 0x00:		//非心跳正常功耗帧
+						break;
+					case 0x02:      //非心跳低功耗帧
+						break;
+					case 0x04:      //心跳正常功耗帧
+						cmdUpFlag = 0;       //不用再通过串口发送
+						break;
+					case 0x06:      //心跳低功耗帧
+						break;	
+				}
+				break;
+			case 0x80:		//从站组网
+				frame_flag =  (pframe[4] & 0x06);                //心跳，通信模式
+				switch(frame_flag)
+				{
+				    case 0x00:      //非心跳正常功耗帧
+						//if(wait_frameNum == (pframe[Region_SeqNumber]&0x0f))
+						{
+							xTaskNotify(StartTask_Handler,0x00000002,eSetBits);   //设备配网成功应答
+						}
+						UseComSendBytes(pframe+index, (pframe+index)[Region_DataLenNumber]+11);
+						cmdUpFlag = 0;       //不用再通过串口发送
+						DebugPrintf("\n从站回应配网成功");
+						break;
+					case 0x02:      //非心跳低功耗帧
+						break;
+					case 0x04:      //心跳正常功耗帧
+						cmdUpFlag = 0;       //不用再通过串口发送
+						break;
+					case 0x06:      //心跳低功耗帧
+						break;	
+				}
+				break;
+			case 0x81:		//从站通信
+				frame_flag =  (pframe[4] & 0x06);                //心跳，通信模式
+				
+				switch(frame_flag)
+				{
+				    case 0x00:      //非心跳正常功耗帧
+						if(((pframe+index)[Region_DataIDNumber]==0xFF)&&		//是配网帧回应
+							((pframe+index)[Region_DataIDNumber+1]==0xFF)&&
+							((pframe+index)[Region_DataIDNumber+2]==0xFF))
+						{
+							//if(wait_frameNum == (pframe[Region_SeqNumber]&0x0f))
+							{
+								xTaskNotify(StartTask_Handler,0x00000001,eSetBits);   //设备配网成功应答
+							}
+						}
+						else
+						{
+							DebugPrintf("\n");
+						}
+						
+						break;
+					case 0x02:      //非心跳低功耗帧
+						break;
+					case 0x04:      //心跳正常功耗帧
+						cmdUpFlag = 0;       //不用再通过串口发送
+						break;
+					case 0x06:      //心跳低功耗帧
+						break;	
+				}
+				break;		
+		}
+		if(cmdUpFlag == 1)    //需要发串口数据
+		{	
+			UseComSendBytes(pframe+index, (pframe+index)[Region_DataLenNumber]+11);
+		}
+		
+	}
+	else if(pframe[0]==0xAC)
+	{
+		frame_len = pframe[Region_DataLenNumber];
+		if(frame_len<70)
+		{
+			FrameData_74Convert(pframe,wireless->Wireless_PacketLength,&frame_len,0);
+		}
+			//解密
+		if((pframe[Region_SeqNumber]&FSEQ_ENC_BIT) > 0)
+		{
+			 DebugPrintf("\n需要解密");
+			 
+			 Encrypt_Convert(pframe,frame_len , &frame_len, 0);   //解密
+		}
+		else
+		{
+			DebugPrintf("\n不用解密");
+		}
+		
+		if(xUartFrameCmdCheck(pframe,frame_len) == FRAME_OK)          //非路由协议，旧协议
+		{
+			frame_flag = pframe[Region_CmdNumber]&0x98;
+			
+			switch(frame_flag)
+			{
+				case 0x10:  		//主站，普通帧
+					DebugPrintf("\n旧协议，主站，普通帧");
+					break;
+				case 0x18:          //主站，事件帧
+					DebugPrintf("\n旧协议，主站，事件帧");
+					break;
+				case 0x90:          //从站，普通帧
+					DebugPrintf("\n旧协议，从站，普通帧");
+					if(wait_frameNum == (pframe[Region_SeqNumber]&0x0f))
+					{
+						if((pframe[Region_DataIDNumber]==0xFF)&&		//是配网帧回应
+						(pframe[Region_DataIDNumber+1]==0xFF)&&
+						(pframe[Region_DataIDNumber+2]==0xFF))
+						{
+							DebugPrintf("\n设备配网成功应答");
+							xTaskNotify(StartTask_Handler,0x00000002,eSetBits);   //设备配网成功应答
+						}
+						else
+						{
+
+							xTaskNotify(StartTask_Handler,0x00000001,eSetBits);   //设备通信应答成功
+						}
+					}
+					
+					break;
+				case 0x98:          //从站，事件帧
+					DebugPrintf("\n旧协议，从站，事件帧");
+					vMastAckToDevice(pframe,frame_len);
+					break;
+			}
+
+		}
+		if(cmdUpFlag == 1)    //需要发串口数据
+		{	
+			UseComSendBytes(pframe, frame_len);
+		}
+	}
+	
+	
+
+}
+
 
 
 

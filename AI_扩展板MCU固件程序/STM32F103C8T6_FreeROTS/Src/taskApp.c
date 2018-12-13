@@ -120,6 +120,17 @@ void AppSuperviseTask(void const *argument)
         osDelay(30000);
         for (j = 0; j < deviceInfo.deviceNum; j++)
         {
+		
+			if(DeviceVsnJudge(deviceInfo.deviceBuff[j],oldDevice.buff,oldDevice.num) == 1)   //是否为旧电器
+			{
+			   continue;
+			}
+
+			if(LowPowerDeviceMach(deviceInfo.deviceBuff[j])==1)
+			{
+				 continue;
+			}
+
             userTemp[0] = 0;
             routerLen = desDevice[deviceInfo.deviceBuff[j] - DEVICE_INDEX_OFFSET].path1.len;
             if (routerLen > 0)
@@ -131,7 +142,7 @@ void AppSuperviseTask(void const *argument)
                 }
             }
             queue_wireless.len = FrameRouterHeart(deviceInfo.deviceBuff[j], userTemp, 1, queue_wireless.msg, routerTab, routerLen);
-            queue_wireless.toCh = Default_Channel;
+            queue_wireless.toCh = Wireless_Channel[0];
             xQueueSend(xQueueWirelessTask, &queue_wireless, (TickType_t)100);
 
             xResult = xTaskNotifyWait(0x00000000, 0xFFFFFFFF, &ulValue, (TickType_t)1000); //等待回应
@@ -164,8 +175,7 @@ void AppSuperviseTask(void const *argument)
                             continue;
                         routerTab[0] = deviceInfo.deviceBuff[i];
                         queue_wireless.len = FrameRouterHeart(deviceInfo.deviceBuff[j + 1], userTemp, 1, queue_wireless.msg, routerTab, routerLen);
-                        //queue_wireless.toCh = Wireless_Channel[0];
-						queue_wireless.toCh = Default_Channel;
+                        queue_wireless.toCh = Wireless_Channel[0];
                         xQueueSend(xQueueWirelessTask, &queue_wireless, (TickType_t)100);
                         xResult = xTaskNotifyWait(0x00000000, 0xFFFFFFFF, &ulValue, (TickType_t)1000); //等待回应
                         if (xResult == pdPASS)                                                         /* 成功接收 */
@@ -437,19 +447,30 @@ void AppWirelessTask(void const *argument)
 
         if (xResult == pdPASS) /* 成功接收，并通过串口将数据打印出来 */
         {
-            osDelay(50);
-            if((queueUartMsg.msg[0]==0x69)&&(queueUartMsg.msg[1]==0x69))
-            {
-                if(queueUartMsg.msg[2]<70)
-                {
-                    FrameRouteData_74Convert((FRAME_ROUTER_CMD_t*)queueUartMsg.msg,queueUartMsg.len,&queueUartMsg.len,1);
-                }
-            }
+            osDelay(50);		
+
+			
+			
+		if((queueUartMsg.msg[0]==0x69)&&(queueUartMsg.msg[1]==0x69))
+		{
+			if(queueUartMsg.msg[2]<=70)
+			{
+				FrameRouteData_74Convert((FRAME_ROUTER_CMD_t*)queueUartMsg.msg,queueUartMsg.len,&queueUartMsg.len,1);
+			}
+		}
+			else if(queueUartMsg.msg[0]==0xAC)
+			{
+				if(queueUartMsg.msg[Region_DataLenNumber]<100)
+				{
+					FrameData_74Convert((FRAME_CMD_t*)queueUartMsg.msg,queueUartMsg.len,&queueUartMsg.len,1);
+				}
+			}
+				
+
+			
             Si4438_Transmit_Start(&Wireless_Buf, queueUartMsg.toCh, queueUartMsg.msg, queueUartMsg.len);
         }
 
-        //		Si4438_Transmit_Start(&Wireless_Buf, Default_Channel, "Test Wireless Data", strlen("Test Wireless Data"));
-        //      osDelay(1000);
         if (WIRELESS_STATUS == Wireless_RX_Finish)
         {
             WireLess_Process(&Wireless_Buf, &Device_ParaBuf);
@@ -636,7 +657,7 @@ void AppNetCreateTask(void const *argument)
                     queue_wireless_send.toCh = Default_Channel;
 
                     memcpy(queue_wireless_send.msg,pxQueueTemp.Frame_Data,pxQueueTemp.FrameTotalLen);
-                    FrameData_74Convert((FRAME_CMD_t*)queue_wireless_send.msg,pxQueueTemp.FrameTotalLen,&queue_wireless_send.len,1); //编码
+//                    FrameData_74Convert((FRAME_CMD_t*)queue_wireless_send.msg,pxQueueTemp.FrameTotalLen,&queue_wireless_send.len,1); //编码
 
                     xTaskNotifyWait(0x00000000, 0xFFFFFFFF, &ulValue, 2); //先清除回应
                     xQueueSend(xQueueWirelessTask, &queue_wireless_send.msg, (TickType_t)10);   //发无路由的配网，0xAC开头的

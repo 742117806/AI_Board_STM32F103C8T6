@@ -79,8 +79,9 @@
 #include "crc16.h"
 #include "74.h"
 #include "frame_74.h"
-#include "frame_route.h"
 #include "device.h"
+#include "frame_route.h"
+
 #include "stmflash.h"
 #include "rsa.h"
 #include "aes.h"

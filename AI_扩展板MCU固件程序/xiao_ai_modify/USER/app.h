@@ -37,6 +37,12 @@ void vWirelessRecvProcess(void);
 void vLedProcess(void);
 void vLedCtrlModeLoop(uint8_t mode);
 void vFrameUartRemoteCmdDeal(uint8_t *buff,uint8_t len);
+void LowPowerDeviceWakeUp(uint8_t ch);
+void LowPowerDeviceInit(void);
+uint8_t LowPowerDeviceIsExsit(uint8_t addr);
+uint8_t  LowPowerDeviceInset(uint8_t mac_bit7,uint8_t addr);
+void LowPowerDeviceDelete(uint8_t addr);
+uint8_t  LowPowerDeviceMach(uint8_t addr);
 
 #endif
  

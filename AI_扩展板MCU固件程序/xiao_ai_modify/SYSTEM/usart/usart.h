@@ -24,7 +24,7 @@
 //extern u16 USART_RX_STA;         		//接收状态标记	
 
 //定义是否打印调试信息：0不打印，1打印
-#define _DEBUG_ 1				
+#define _DEBUG_ 0				
 
 #if _DEBUG_
 #define DebugPrintf(...)   	printf(__VA_ARGS__)
