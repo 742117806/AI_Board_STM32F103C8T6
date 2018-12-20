@@ -87,9 +87,9 @@
 #define configUSE_TICK_HOOK			0
 #define configCPU_CLOCK_HZ			( ( unsigned long ) 72000000 )	
 #define configTICK_RATE_HZ			( ( TickType_t ) 1000 )
-#define configMAX_PRIORITIES		( 5 )
-#define configMINIMAL_STACK_SIZE	( ( unsigned short ) 128 )
-#define configTOTAL_HEAP_SIZE		( ( size_t ) (10240) )
+#define configMAX_PRIORITIES		( 7 )
+#define configMINIMAL_STACK_SIZE	( ( unsigned short ) 64 )
+#define configTOTAL_HEAP_SIZE		( ( size_t ) (9000) )
 #define configMAX_TASK_NAME_LEN		( 16 )
 #define configUSE_TRACE_FACILITY	0
 #define configUSE_16_BIT_TICKS		0
@@ -130,6 +130,10 @@ standard names. */
 #define vPortSVCHandler SVC_Handler 
 #define xPortPendSVHandler PendSV_Handler 
 #define xPortSysTickHandler SysTick_Handler 
+
+//检测任务堆栈溢出钩子函数
+#define configCHECK_FOR_STACK_OVERFLOW    1
+//#define configUSE_STATS_FORMATTING_FUNCTIONS 1
 
 
 #endif /* FREERTOS_CONFIG_H */

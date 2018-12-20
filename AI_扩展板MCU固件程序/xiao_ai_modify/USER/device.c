@@ -28,6 +28,8 @@ void vDeviceInfoInit(void)
 		{
 			delay_cnt = 0;
 			DebugPrintf("\r\n请烧写设备的MAC地址，格式为HEX协议帧 \"68 20 08 xx xx xx xx xx xx xx xx CRC_H CRC_L\"");
+			UseComSendBytes("\r\n请烧写设备的MAC地址，格式为HEX协议帧 \"68 20 08 xx xx xx xx xx xx xx xx CRC_H CRC_L\"",
+			sizeof("\r\n请烧写设备的MAC地址，格式为HEX协议帧 \"68 20 08 xx xx xx xx xx xx xx xx CRC_H CRC_L\""));
 		}
 		vTaskDelay(10);
 	}
@@ -121,13 +123,13 @@ void  vDeviceMatchNet(uint8_t *buff,uint8_t len)
 *  返 回 值: 无
 *********************************************************************************************************
 */
-void vVersionReport(uint8_t *cmd,uint8_t len ,uint16_t version)
+void vVersionReport(uint8_t *cmd,uint8_t len ,uint32_t version)
 {
-	uint8_t temp[2]={0};
-	
-	temp[0] = Version_Number >> 8;
-	temp[1] = Version_Number & 0xff;
-	FrameCmdLocalAck(cmd,len,temp,2);
+	uint8_t temp[3]={0};
+	temp[0] = Version_Number >> 16;
+	temp[1] = (Version_Number >> 8)& 0x0000ff;
+	temp[2] = Version_Number & 0x0000ff;
+	FrameCmdLocalAck(cmd,len,temp,3);
 }
 
 /**
@@ -160,10 +162,34 @@ void vDeviceListSave(uint8_t *list,uint8_t len)
 {	 
 	if(len>DEVICE_NUM_MAX)return ;		//传入的参数列表长度过大
 	deviceInfo.match.deviceNum = len;
-	
+	memset(deviceInfo.match.deviceBuff,0x00,DEVICE_NUM_MAX);
 	memcpy(deviceInfo.match.deviceBuff,list,len);
 	STMFLASH_Write(DEVICE_MATCH_SAVE_ADDR,(uint16_t*)&deviceInfo.match,sizeof(deviceInfo.match));
 }
+
+
+/**
+*********************************************************************************************************
+*  函 数 名: vDeviceIsExistList
+*  功能说明: 设备是否在设备列表中
+*  形    参: @list 设备列表
+			 @desAddr目标设备地址
+*  返 回 值: 无
+*********************************************************************************************************
+*/
+uint8_t vDeviceIsExistList(Device_Match_t *list,uint8_t desAddr)
+{
+    uint8_t i;
+	for(i = 0; i < list->deviceNum; i++)
+	{
+		if(desAddr == list->deviceBuff[i])
+		{
+			return 1;  //存在
+		}
+	}
+	return 0;       //不存在
+}
+
 
 
 /**

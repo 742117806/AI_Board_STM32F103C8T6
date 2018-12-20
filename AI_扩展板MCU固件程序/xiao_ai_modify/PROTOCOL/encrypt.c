@@ -82,7 +82,7 @@ uint8_t Encrypt_Convert(uint8_t *p_source, uint8_t input_len, uint8_t *output_le
         memmove(&p_source[Region_DataAFNNumber + p_source[Region_DataLenNumber]], rout_region, 3 + RoutSeries_Size);
         temp_len += (3 + RoutSeries_Size);
     }
-
+    if(temp_len < 3) return 0;
     crc16_val = CRC16_2(p_source, temp_len - 3);
     p_source[temp_len - 3] = crc16_val >> 8;
     p_source[temp_len - 2] = crc16_val & 0xff;

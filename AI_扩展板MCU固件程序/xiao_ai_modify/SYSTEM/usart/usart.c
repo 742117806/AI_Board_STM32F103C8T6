@@ -247,11 +247,14 @@ void UartSendData(USART_TypeDef *USARTx, uint8_t byte)
 */
 void UartSendBytes(USART_TypeDef *USARTx, uint8_t *buf, uint16_t len)
 {
+	
     uint8_t i = 0;
+	vTaskSuspendAll();
     for (i = 0; i < len; i++)
     {
         UartSendData(USARTx, *buf++);
-    }
+    }	
+	xTaskResumeAll();
 }
 
 /* 

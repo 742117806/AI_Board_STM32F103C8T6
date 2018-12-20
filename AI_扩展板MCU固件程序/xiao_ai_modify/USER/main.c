@@ -5,8 +5,8 @@
  
 /*********************任务相关定义和声明************************/
 
-#define START_TASK_PRIO		1 			//任务优先级
-#define START_STK_SIZE 		320 		//任务堆栈大小	 
+#define START_TASK_PRIO		6 			//任务优先级
+#define START_STK_SIZE 		256 		//任务堆栈大小	 
 TaskHandle_t StartTask_Handler;    		//任务句柄
 void vStartTask(void *pvParameters);   	//任务函数
 
@@ -31,7 +31,10 @@ TaskHandle_t WirelessTxTask_Handler;    		//任务句柄
 void vWirelessTxTask(void *pvParameters);   	//任务函数
 
 
-
+#define WIRELESS_ROUTE_TASK_PRIO		1 			//任务优先级
+#define WIRELESS_ROUTE_STK_SIZE 		64 		//任务堆栈大小	 
+TaskHandle_t WirelessRouteTask_Handler;    			//任务句柄
+void vWirelessRouteTask(void *pvParameters);   		//任务函数
  
 /************************************************
 
@@ -51,39 +54,67 @@ void StartTaskCreate(void)
 
 void AppTaskCreate(void)
 {
- 
+    BaseType_t xReturn;
 
 	//创建LED任务
-    xTaskCreate((TaskFunction_t )vLedTask,            //任务函数
+    xReturn = xTaskCreate((TaskFunction_t )vLedTask,            //任务函数
                 (const char*    )"vLedTask",          //任务名称
                 (uint16_t       )LED_STK_SIZE,        //任务堆栈大小
                 (void*          )NULL,                //传递给任务函数的参数
                 (UBaseType_t    )LED_TASK_PRIO,       //任务优先级
                 (TaskHandle_t*  )&LedTask_Handler);   //任务句柄 
+	if(xReturn != pdPASS)
+	{
+        printf("\nvLedTask创建失败");
+	}
 
 	//创建KEY任务
-    xTaskCreate((TaskFunction_t )vNetTask,            //任务函数
+    xReturn =  xTaskCreate((TaskFunction_t )vNetTask,            //任务函数
                 (const char*    )"vNetTask",          //任务名称
                 (uint16_t       )NET_STK_SIZE,        //任务堆栈大小
                 (void*          )NULL,                //传递给任务函数的参数
                 (UBaseType_t    )NET_TASK_PRIO,       //任务优先级
                 (TaskHandle_t*  )&NetTask_Handler);   //任务句柄  
+	if(xReturn != pdPASS)
+	{
+        printf("\nvNetTask创建失败");
+	}
 
 	//创建无线发射任务
-    xTaskCreate((TaskFunction_t )vWirelessRxTask,            //任务函数
+    xReturn =  xTaskCreate((TaskFunction_t )vWirelessRxTask,            //任务函数
                 (const char*    )"vWirelessRxTask",          //任务名称
                 (uint16_t       )WIRELESS_RX_STK_SIZE,        //任务堆栈大小
                 (void*          )NULL,                		//传递给任务函数的参数
                 (UBaseType_t    )WIRELESS_RX_TASK_PRIO,       //任务优先级
                 (TaskHandle_t*  )&WirelessRxTask_Handler);   //任务句柄  
+    if(xReturn != pdPASS)
+	{
+        printf("\nvWirelessRxTask创建失败");
+	}
 
 	//创建无线发射任务
-    xTaskCreate((TaskFunction_t )vWirelessTxTask,            //任务函数
+    xReturn =  xTaskCreate((TaskFunction_t )vWirelessTxTask,            //任务函数
                 (const char*    )"vWirelessTxTask",          //任务名称
                 (uint16_t       )WIRELESS_TX_STK_SIZE,        //任务堆栈大小
                 (void*          )NULL,                		//传递给任务函数的参数
                 (UBaseType_t    )WIRELESS_TX_TASK_PRIO,       //任务优先级
-                (TaskHandle_t*  )&WirelessTxTask_Handler);   //任务句柄  	
+                (TaskHandle_t*  )&WirelessTxTask_Handler);   //任务句柄  
+	if(xReturn != pdPASS)
+	{
+        printf("\nvWirelessTxTask创建失败");
+	}
+
+	//创建无线路由任务
+//    xReturn =  xTaskCreate((TaskFunction_t )vWirelessRouteTask,            //任务函数
+//                (const char*    )"vWirelessRouteTask",          //任务名称
+//                (uint16_t       )WIRELESS_ROUTE_STK_SIZE,        //任务堆栈大小
+//                (void*          )NULL,                		//传递给任务函数的参数
+//                (UBaseType_t    )WIRELESS_ROUTE_TASK_PRIO,       //任务优先级
+//                (TaskHandle_t*  )&WirelessRouteTask_Handler);   //任务句柄  
+//	if(xReturn != pdPASS)
+//	{
+//        printf("\nvWirelessRouteTask创建失败");
+//	}					
 				
 }
 /* 创建邮箱 */
@@ -119,6 +150,8 @@ void vSystemLogoDisplay(void)
    DebugPrintf("\n*******************FeerRTOS 工程*********************\n");
    DebugPrintf("日期：%s %s \n",__DATE__,__TIME__);
 }
+
+
 /* 
 ********************************************************************************************************* 
 *  函 数 名: main 
@@ -130,13 +163,17 @@ void vSystemLogoDisplay(void)
 int main(void)
 {		
 	delay_init(72);	    //延时函数初始化	
-	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_4); //设置NVIC中断分组4:0位抢占优先级
+	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2); //设置NVIC中断分组4:0位抢占优先级
 
 	StartTaskCreate();
 		
 	vTaskStartScheduler();          //开启任务调度
 }
 
+void vApplicationStackOverflowHook( TaskHandle_t xTask, char *pcTaskName )
+{
+    printf("\n任务: %s 发现栈溢出",pcTaskName);
+}
 
 
 /* 
@@ -156,10 +193,10 @@ static void vStartTask(void *pvParameters)
 	vSystemLogoDisplay();			//打印LOGO信息
 	vKeyInit();						//按键初始化
 	SN3218_Init();
-	vAppWirelessInit();
 	vDeviceInfoInit();
+	vAppWirelessInit();
 	AES_Init();                     //必须放到vDeviceInifoInit()后面
-	//LowPowerDeviceInit();			//必须放到vDeviceInifoInit()后面  ，调用死机
+	LowPowerDeviceInit();			//必须放到vDeviceInifoInit()后面 
 	AppQueueCreate();               //创建邮箱
 	AppSemaphoreCreate();
 	AppTaskCreate();				//创建任务	
@@ -167,7 +204,6 @@ static void vStartTask(void *pvParameters)
     while(1) 
     { 
 		vUartFrameProcess(&sUart1Rx);
-		
 		vTaskDelay(10);
     } 
 	
@@ -228,8 +264,7 @@ static void vNetTask(void *pvParameters)
 		if (xResult == pdPASS) 							/* 成功接收，并通过串口将数据打印出来 */
         {
 			DebugPrintf("\n接收到无线配网数据");
-		    //vRouteFrameMatchProcess(&deviceInfo.match,&queueMsg);
-			
+		    //vRouteFrameMatchProcess(&deviceInfo.match,&queueMsg);			
 			xQueueSend(xQueueWirelessTx,&queueMsg, (TickType_t)10);			//发到无线发送任务		
 		}
 		else
@@ -276,7 +311,7 @@ static void vWirelessTxTask(void *pvParameters)
 			else if(queueMsg.msg[0]==0xAC)
 			{
 				frame_len = queueMsg.msg[Region_DataLenNumber];
-				if(frame_len<70)
+				if(frame_len<=70)
 				{
 					FrameData_74Convert(queueMsg.msg,queueMsg.len,&queueMsg.len,1);
 				}
@@ -302,6 +337,21 @@ static void vWirelessRxTask(void *pvParameters)
     { 
 	   vWirelessRecvProcess();
 	   vTaskDelay(30); 
+	}
+}
+
+
+static void vWirelessRouteTask(void *pvParameters)
+{
+    uint8_t index = 0;
+   	while(1) 
+    { 
+	     //printf("\nvWirelessRouteTask");
+		 
+		 FrameHeartCompose(deviceInfo.match.deviceBuff[index]);
+		 index ++;
+		 if(index > deviceInfo.match.deviceNum) index = 0;
+		 vTaskDelay(1000); 
 	}
 }
  /**

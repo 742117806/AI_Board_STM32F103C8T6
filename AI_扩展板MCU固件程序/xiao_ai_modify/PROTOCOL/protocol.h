@@ -172,6 +172,7 @@ void vUartRxFrame(uint8_t rx_data, sUartRx_t *pu_buf);
 void vUartFrameProcess(sUartRx_t *pbuff);
 void vUartAesProcess(sUartRx_t *pbuff);
 void FrameCmdLocalAck(uint8_t *cmdBuff,uint8_t cmdLen,uint8_t *userDat,uint8_t userLen);
+void FrameCmdLocalAck1(uint8_t *cmdBuff,uint8_t cmdLen,uint8_t *userDat,uint8_t userLen);
 void vWirelessFrameDeal(WLS *wireless);
 
 

@@ -121,7 +121,9 @@ uint8_t FrameRouterCompose(
     uint8_t routerLen);
 	
 
-void  vRouteFrameMatchProcess(Device_Match_t *match,QUEUE_WIRELESS_SEND_t *pMsg);						  
+void  vRouteFrameMatchProcess(Device_Match_t *match,QUEUE_WIRELESS_SEND_t *pMsg);		
+void vQueryDeviceRssi(Device_Match_t *list);	
+void  FrameHeartCompose(uint8_t desAddr);			  
 
 
 #endif

@@ -4,7 +4,7 @@
 
 #include "includes.h"
 
-#define Version_Number 0x0302
+#define Version_Number 0x010304	//硬件版本01，主版本03，次版本 04
 #define DEVICE_NUM_MAX	225
 
  //保存设备信息的首地址(最后2K的开始地址为0x0800F800)
@@ -13,7 +13,7 @@
 #define DEVICE_AES_SAVE_ADDR	 DEVICE_MAC_SAVE_ADDR + sizeof(Device_mac_t)
 #define DEVICE_MATCH_SAVE_ADDR   DEVICE_AES_SAVE_ADDR + sizeof(Device_aes_t)
 //0x080E800 作为低功耗设备逻辑地址
-#define DEVICE_SEELP_ADDR	 0x080E800
+#define DEVICE_SEELP_ADDR	 0x0800E800
 
 //typedef struct mac_link_da_
 //{
@@ -70,10 +70,11 @@ void  vDeviceMatchNet(uint8_t *buff,uint8_t len);
 void vDeviceInfoInit(void);
 uint8_t uxIsLowPowerDevice(uint8_t mac_byte7);
 void vLowPowerDeviceWakeUp(uint8_t ch);
-void vVersionReport(uint8_t *cmd,uint8_t len ,uint16_t version);
+void vVersionReport(uint8_t *cmd,uint8_t len ,uint32_t version);
 void vDeviceListSave(uint8_t *list,uint8_t len);
 void vDeviceMacReport(uint8_t *cmd,uint8_t len ,uint8_t *mac);
 void AES_Init(void);
+uint8_t vDeviceIsExistList(Device_Match_t *list,uint8_t desAddr);
 
 #endif
  

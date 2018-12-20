@@ -33,15 +33,17 @@ uint8_t FrameRouterCompose(
     uint8_t *routerTab,
     uint8_t routerLen)
 {
-
-    FRAME_ROUTER_MASTER_CMD_t *p = (FRAME_ROUTER_MASTER_CMD_t *)outData;
+    uint8_t temp[256] = {0};
+    FRAME_ROUTER_MASTER_CMD_t *p;
 
     uint16_t crc_16;
     uint8_t out_frameLen;
+	
 
     out_frameLen = srcLen + routerLen + 13;
-    memset(outData, 0x00, out_frameLen + 4);
-
+	
+    memset(temp, 0x00, out_frameLen + 4);
+    p = (FRAME_ROUTER_MASTER_CMD_t *)temp;
     p->head_h = 0x69;
     p->head_l = 0x69;
 
@@ -56,14 +58,14 @@ uint8_t FrameRouterCompose(
     p->routerNum.index = routerLen;             //路由当前级数 等于长度
     p->routerNum.type = 0xF;
     p->router_len = routerLen;                      //路由表长度
-    memcpy(&outData[13], routerTab, p->router_len); //路由表数据
-    memcpy(&outData[13 + p->router_len], srcData, srcLen);
-    crc_16 = CRC16_2(outData, p->len);
-    outData[p->len] = crc_16 >> 8;
-    outData[p->len + 1] = crc_16 & 0x00ff;
-    outData[p->len + 2] = 0x96;
-    outData[p->len + 3] = 0x96;
-    //memcpy(srcData, outData, p->len + 4);
+    memcpy(&temp[13], routerTab, p->router_len); //路由表数据
+    memcpy(&temp[13 + p->router_len], srcData, srcLen);
+    crc_16 = CRC16_2(temp, p->len);
+    temp[p->len] = crc_16 >> 8;
+    temp[p->len + 1] = crc_16 & 0x00ff;
+    temp[p->len + 2] = 0x96;
+    temp[p->len + 3] = 0x96;
+	memcpy(outData, temp, p->len + 4);
     return p->len + 4;
 }
 
@@ -114,6 +116,46 @@ uint8_t FrameRouterCompose_ext(uint8_t *desAddrMAC,
     temp[p->len + 3] = 0x96;
     memcpy(outData, temp, p->len + 4);
     return p->len + 4;
+}
+
+/**
+*********************************************************************************************************
+*  函 数 名: FrameHeartCompose
+*  功能说明: 心跳帧
+*  形    参: 
+*  返 回 值: 无
+*********************************************************************************************************
+*/
+void  FrameHeartCompose(uint8_t desAddr)
+{
+	//uint8_t temp[256] = {0};
+	QUEUE_WIRELESS_SEND_t queueMsg;
+
+	uint8_t *p  = queueMsg.msg;
+	uint16_t crc_16;
+	*p++ = 0x69; //帧头
+	*p++ = 0x69;
+	*p++ = 13;		//长度
+	*p++ = ~13;      //长度取反
+	*p++ = 0x05;      //帧控制码 
+	*p++ = deviceInfo.aes_field.addr_GA[1];
+	*p++ = deviceInfo.aes_field.addr_GA[2];
+	*p++ = desAddr;
+	*p++ = deviceInfo.mac_frame.mac[4];
+	*p++ = deviceInfo.mac_frame.mac[5];
+	*p++ = deviceInfo.mac_frame.mac[6];
+	*p++ = 0x0f;		//路由表级数和通信方式 （0载波或1无线）
+	*p++ = 0;           //路由表长度
+	crc_16 = CRC16_2(queueMsg.msg, queueMsg.msg[2]);
+	*p++ = crc_16 >> 8;
+	*p++ = crc_16 & 0x00ff;
+	*p++ = 0x96;
+	*p++ = 0x96;
+
+	queueMsg.len = queueMsg.msg[2]+4;
+	queueMsg.toCh = Wireless_Channel[0];
+	xQueueSend(xQueueWirelessTx,&queueMsg, (TickType_t)10);			//发到无线发送任务	
+
 }
 
 /**
@@ -208,6 +250,24 @@ void  vRouteFrameMatchProcess(Device_Match_t *match,QUEUE_WIRELESS_SEND_t *pMsg)
 *********************************************************************************************************
 */
 
+/**
+*********************************************************************************************************
+*  函 数 名: vQueryDeviceRssi
+*  功能说明: 查询设备到主控设备之间的信号值
+*  形    参: @addr 设备地址
+			 @rssi设备到主控设备的信号强度值
+*  返 回 值: 无
+*********************************************************************************************************
+*/
+void vQueryDeviceRssi(Device_Match_t *list)
+{
+	uint8_t i;
+	for(i=0;i<list->deviceNum;i++)
+	{
+		FrameHeartCompose(list->deviceBuff[i]);
+	}
+	
+}
 
 
 

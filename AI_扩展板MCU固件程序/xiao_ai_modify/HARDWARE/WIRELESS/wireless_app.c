@@ -585,11 +585,11 @@ Wireless_Handle_Status si4438_DataSend(WLS *pWL, uint8_t channel_number, uint8_t
 #ifdef Use_Rx_Hop
 void Get_WireLessChannel(uint8_t *wire_chnel)
 {
-    //uint32_t temp_val = LANGroup_Addr[0] + LANGroup_Addr[1] + LANGroup_Addr[2];
+    uint32_t temp_val = deviceInfo.aes_field.addr_GA[0] + deviceInfo.aes_field.addr_GA[1] + deviceInfo.aes_field.addr_GA[2];
 
     //uint32_t temp_val = 0x00 + 0x29 + 0x02;
     //uint32_t temp_val = 0x00 + 0x2A + 0x5B;
-    uint32_t temp_val = 0x00 + 0x2A + 0x5B;
+    //uint32_t temp_val = 0x00 + 0x2A + 0x5B;
     if (temp_val == 0)
     {
         wire_chnel[0] = Default_Channel;

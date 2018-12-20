@@ -155,18 +155,34 @@
         <Bp>
           <Number>0</Number>
           <Type>0</Type>
-          <LineNumber>1006</LineNumber>
+          <LineNumber>86</LineNumber>
           <EnabledFlag>1</EnabledFlag>
-          <Address>134239430</Address>
+          <Address>134221450</Address>
           <ByteObject>0</ByteObject>
           <HtxType>0</HtxType>
           <ManyObjects>0</ManyObjects>
           <SizeOfObject>0</SizeOfObject>
           <BreakByAccess>0</BreakByAccess>
           <BreakIfRCount>1</BreakIfRCount>
-          <Filename>E:\宸ヤ綔椤圭洰\灏廇I鎵╁睍鏉?AI_鎵╁睍鏉縈CU鍥轰欢绋嬪簭\xiao_ai_modify\PROTOCOL\protocol.c</Filename>
+          <Filename>E:\宸ヤ綔椤圭洰\灏廇I鎵╁睍鏉?AI_鎵╁睍鏉縈CU鍥轰欢绋嬪簭\xiao_ai_modify\PROTOCOL\encrypt.c</Filename>
           <ExecCommand></ExecCommand>
-          <Expression>\\LED\../PROTOCOL/protocol.c\1006</Expression>
+          <Expression>\\MasterRF_V010304\../PROTOCOL/encrypt.c\86</Expression>
+        </Bp>
+        <Bp>
+          <Number>1</Number>
+          <Type>0</Type>
+          <LineNumber>87</LineNumber>
+          <EnabledFlag>1</EnabledFlag>
+          <Address>134221462</Address>
+          <ByteObject>0</ByteObject>
+          <HtxType>0</HtxType>
+          <ManyObjects>0</ManyObjects>
+          <SizeOfObject>0</SizeOfObject>
+          <BreakByAccess>0</BreakByAccess>
+          <BreakIfRCount>1</BreakIfRCount>
+          <Filename>E:\宸ヤ綔椤圭洰\灏廇I鎵╁睍鏉?AI_鎵╁睍鏉縈CU鍥轰欢绋嬪簭\xiao_ai_modify\PROTOCOL\encrypt.c</Filename>
+          <ExecCommand></ExecCommand>
+          <Expression>\\MasterRF_V010304\../PROTOCOL/encrypt.c\87</Expression>
         </Bp>
       </Breakpoint>
       <WatchWindow1>
@@ -185,6 +201,51 @@
           <WinNumber>1</WinNumber>
           <ItemText>pframe+index</ItemText>
         </Ww>
+        <Ww>
+          <count>3</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>queueMsg</ItemText>
+        </Ww>
+        <Ww>
+          <count>4</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>srcData[0]</ItemText>
+        </Ww>
+        <Ww>
+          <count>5</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>srcData[1]</ItemText>
+        </Ww>
+        <Ww>
+          <count>6</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>srcData[2]</ItemText>
+        </Ww>
+        <Ww>
+          <count>7</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>temp</ItemText>
+        </Ww>
+        <Ww>
+          <count>8</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>sleep_device</ItemText>
+        </Ww>
+        <Ww>
+          <count>9</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>buff+1</ItemText>
+        </Ww>
+        <Ww>
+          <count>10</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>sUart1Rx</ItemText>
+        </Ww>
+        <Ww>
+          <count>11</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>led_set_mode</ItemText>
+        </Ww>
       </WatchWindow1>
       <MemoryWindow1>
         <Mm>
@@ -200,7 +261,7 @@
       <DebugFlag>
         <trace>0</trace>
         <periodic>1</periodic>
-        <aLwin>1</aLwin>
+        <aLwin>0</aLwin>
         <aCover>0</aCover>
         <aSer1>0</aSer1>
         <aSer2>0</aSer2>
@@ -218,7 +279,7 @@
         <aPa1>0</aPa1>
         <AscS4>0</AscS4>
         <aSer4>0</aSer4>
-        <StkLoc>0</StkLoc>
+        <StkLoc>1</StkLoc>
         <TrcWin>0</TrcWin>
         <newCpu>0</newCpu>
         <uProt>0</uProt>
@@ -631,7 +692,7 @@
 
   <Group>
     <GroupName>FreeRTOS/Source</GroupName>
-    <tvExp>1</tvExp>
+    <tvExp>0</tvExp>
     <tvExpOptDlg>0</tvExpOptDlg>
     <cbSel>0</cbSel>
     <RteFlg>0</RteFlg>
