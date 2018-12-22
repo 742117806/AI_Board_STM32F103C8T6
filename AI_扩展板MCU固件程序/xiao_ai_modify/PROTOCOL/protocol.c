@@ -365,7 +365,10 @@ static void  vUartFrameCmdInitDeal(uint8_t *buff,uint8_t len)
         break;
     case 0xFFFE:
         DebugPrintf("\n设备列表");
-        vDeviceListSave(&buff[Region_DataValNumber],buff[Region_DataLenNumber]-4);
+		if(buff[Region_DataLenNumber]>=4)    //确保后面的设备列表的长度大于等于0
+		{
+			vDeviceListSave(&buff[Region_DataValNumber],buff[Region_DataLenNumber]-4);
+		}
         break;
     case 0xFFFD:
         break;
@@ -810,6 +813,19 @@ eFrameCheckType xWirelessRouterCmdCheck(uint8_t *buff,uint8_t len)
 }
 
 
+//判断是否为自己的家庭组
+uint8_t  uxIsMyGroup(uint8_t *group)
+{
+
+	if((group[0]!=deviceInfo.aes_field.addr_GA[0])||
+	(group[1]!=deviceInfo.aes_field.addr_GA[1])||
+	(group[2]!=deviceInfo.aes_field.addr_GA[2]))
+	{
+		return 0;
+	}
+	return 1;
+}
+
 
 /**
 *********************************************************************************************************
@@ -1003,6 +1019,15 @@ void vWirelessFrameDeal(WLS *wireless)
             DebugPrintf("\n不用解密");
         }
 
+		//判断是否为自己的家庭组
+		if(uxIsMyGroup(&wireless->Wireless_RxData[index+2])==0)return;
+		
+		//判断是否为有路由长度
+		if(wireless->Wireless_RxData[12]>0)
+		{
+			DebugPrintf("\n存在路由表");
+		}
+
         frame_flag =  (wireless->Wireless_RxData[4] & 0x81);                //协议主站从站组网或者通信帧位判断
 //		#if 0
         switch(frame_flag)
@@ -1108,7 +1133,7 @@ void vWirelessFrameDeal(WLS *wireless)
     }
     else if(wireless->Wireless_RxData[0]==0xAC)
     {
-
+        if(uxIsMyGroup(&wireless->Wireless_RxData[2])==0)return;
         frame_len = wireless->Wireless_RxData[Region_DataLenNumber];
         if(frame_len<=70)
         {

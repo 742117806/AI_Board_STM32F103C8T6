@@ -6,6 +6,9 @@
 DeviceInfo_t deviceInfo;
 
 Device_Match_t sleep_device;     //低功耗设备
+DeviceMatcheCurrentState_t     DeviceMatcheCurrentState={0,0};
+DeviceMatcheCurrentState_t     DeviceCtrlCurrentState={0,0};
+
 /*
 *********************************************************************************************************
 *  函 数 名: vDeviceInfoInit
@@ -208,6 +211,26 @@ void AES_Init(void)
 	
 	Rsa_Decode(aes_out);  
 	key_expansion(aes_out, aes_w);  
+}
+
+/**
+*********************************************************************************************************
+*  函 数 名: CurrentDeviceMatche
+*  功能说明: 正在配网设备次数级数
+*  形    参: 无
+*  返 回 值: 无
+*********************************************************************************************************
+*/
+void  CurrentDeviceMatche(uint8_t addr,DeviceMatcheCurrentState_t *current_device)
+{
+    if(addr == current_device->addr)
+	{
+	   current_device->MatchCnt ++;
+	}
+	else
+	{
+	   current_device->MatchCnt = 0;
+	}	
 }
 
 

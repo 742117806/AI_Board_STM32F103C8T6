@@ -105,7 +105,7 @@ void vTouchProcess(eKEY_VALUE key_now)
         //DebugPrintf("\nKEY1_PRES_S");
         KeyUpReportCmd(0x01,0);
         SN3218_LedStaSet(0,OFF);		//所有LED灭
-		LED_CenterStaSet(ON); 
+        LED_CenterStaSet(ON);
         LedDispKey1(LED_COLOR_ORANG,ON);
         key_last = key_now;
 
@@ -127,7 +127,7 @@ void vTouchProcess(eKEY_VALUE key_now)
     case KEY3_PRES_S:		//短按
         KeyUpReportCmd(0x04,0);
         SN3218_LedStaSet(0,OFF);		//所有LED灭
-		LED_CenterStaSet(ON);
+        LED_CenterStaSet(ON);
         LedDispKey3(LED_COLOR_ORANG,ON);
         key_last = key_now;
 
@@ -213,8 +213,47 @@ LED_Color_t uxLecColorConvert(eLedColor color)
         break;
     }
     return led_color;
+
 }
 
+/**
+*********************************************************************************************************
+*  函 数 名: LedModeSet()
+*  功能说明: LED模式设置
+*  形    参: 无
+*  返 回 值: 无
+*********************************************************************************************************
+*/
+void  LedModeSet(uint8_t mode,LED_Color_t color)
+{
+    switch(mode)
+    {
+    case AROUND_OFF:    //外围灯熄灭
+        LED_AroundStaSet(LED_COLOR_ALL,OFF);
+        led_last_mode  = led_set_mode;
+        break;
+    case AROUND_BREATH: //外围灯呼吸模式
+        LED_AroundStaSet(LED_COLOR_ALL,OFF);
+        led_last_mode  = led_set_mode;
+        break;
+    case AROUND_ON:     //外围灯点亮
+        vLedAroundDeal((eLedColor)color);
+       led_last_mode  = led_set_mode;
+        break;
+    case AROUND_FLOW:   //外围灯流水模式
+        LED_AroundStaSet(LED_COLOR_ALL,OFF);
+        led_last_mode  = led_set_mode;
+        break;
+    case CENTRE_MODE:   //中间灯模式
+        LED_CenterStaSet(ON);
+        break;
+    case AROUND_INDEX:  //外围灯按个点亮
+        LedDispVol(color);
+        break;
+    default:
+        break;
+    }
+}
 
 /**
 *********************************************************************************************************
@@ -245,32 +284,15 @@ void vLedProcess(void)
         color = ledFunc->ledColor;
         vol = ledFunc->ledColor;
         mode = ledFunc->cmdType;
+
+        //led_last_mode  = led_set_mode;
+        led_last_color  = led_set_color;
+
         led_set_mode = mode;
         led_set_color = uxLecColorConvert((eLedColor)color);
         led_delay  = 0;
-        switch(mode)
-        {
-        case AROUND_OFF:    //外围灯熄灭
-            LED_AroundStaSet(LED_COLOR_ALL,OFF);
-            break;
-        case AROUND_BREATH: //外围灯呼吸模式
-            LED_AroundStaSet(LED_COLOR_ALL,OFF);
-            break;
-        case AROUND_ON:     //外围灯点亮
-            vLedAroundDeal((eLedColor)color);
-            break;
-        case AROUND_FLOW:   //外围灯流水模式
-            LED_AroundStaSet(LED_COLOR_ALL,OFF);
-            break;
-        case CENTRE_MODE:   //中间灯模式
-            LED_CenterStaSet(ON);
-            break;
-        case AROUND_INDEX:  //外围灯按个点亮
-            LedDispVol(vol);
-            break;
-        default:
-            break;
-        }
+        LedModeSet(mode,color);
+
     }
 
 }
@@ -284,30 +306,38 @@ void vLedProcess(void)
 *  返 回 值: 无
 *********************************************************************************************************
 */
+
 void vLedCtrlModeLoop(uint8_t mode)
 {
-    if(mode == AROUND_BREATH)		//外围灯呼吸模式
-    {
-        LED_AroundBreath(led_set_color,2);
+    //eLedColor color;
 
-    }
-    else if(mode == AROUND_FLOW) //外围灯流水模式
+    switch(mode)
     {
-        LED_AroundFlow(led_set_color,2);
-    }
-	else if(mode == AROUND_ON)
-	{
-	
-	}
-    else
-    {
-        led_delay ++;
-        if(led_delay > 50)		//3秒
+
+    case  AROUND_OFF:    //外围灯熄灭
+        break;
+    case AROUND_BREATH: //外围灯呼吸模式
+		 LED_AroundBreath(led_set_color,2);
+        break;
+    case AROUND_ON:     //外围灯点亮	
+		vLedAroundDeal(BLUE);
+        break;
+    case AROUND_FLOW:   //外围灯流水模式
+		LED_AroundFlow(led_set_color,2);
+        break;
+    case CENTRE_MODE:   //中间灯模式
+        break;
+    case AROUND_INDEX:  //外围灯按个点亮
+		led_delay ++;
+        if(led_delay > 20)		//3秒
         {
             led_delay = 0;
             LED_AroundStaSet(LED_COLOR_ALL,OFF);
+			led_set_mode = led_last_mode;
         }
+        break;
     }
+
 }
 
 
@@ -472,48 +502,21 @@ void vFrameDeviceCtrlReorganize(QUEUE_WIRELESS_SEND_t *queueMsg)
     BaseType_t xResult;
     wait_frameNum = queueMsg->msg[Region_SeqNumber] & 0x0f;     //等待的帧号
     old_frame_len = queueMsg->len;
-#if 0    //先发旧协议
-    while(reSendCnt<1)
+
+    if(queueMsg->msg[Region_AddrNumber] == DeviceCtrlCurrentState.addr)
     {
-        DebugPrintf("\n设备控制");
-        //LowPowerDeviceMach();
-        xQueueSend(xQueueWirelessTx, queueMsg, (TickType_t)10);			//直接发到无线发射任务
-        xResult = xTaskNotifyWait(0x00000000,0x00000001,&value,400);
-        if(xResult == pdPASS)
-        {
-            if(value & 0x00000001)
-            {
-                break;
-            }
-        }
-        reSendCnt ++;
+        DeviceCtrlCurrentState.MatchCnt ++;
     }
-    if(reSendCnt == 1)
+    else
     {
-        DebugPrintf("\n旧协议控制超时");
-        reSendCnt = 0;
-        while(reSendCnt<1)
-        {
-            DebugPrintf("\n新协议控制");
-            queueMsg->len = FrameRouterCompose(queueMsg->msg[Region_AddrNumber], //目的设备地址
-                                               queueMsg->msg,                                        //配网命令数据
-                                               queueMsg->len,                                          //配网命令长度
-                                               queueMsg->msg,                                 //缓存配网命令的邮箱
-                                               0,                                            //路由表
-                                               0);
-            xQueueSend(xQueueWirelessTx, queueMsg, (TickType_t)10);			//直接发到无线发射任务
-            xResult = xTaskNotifyWait(0x00000000,0x00000001,&value,400);
-            if(xResult == pdPASS)
-            {
-                if(value & 0x00000001)
-                {
-                    break;
-                }
-            }
-            reSendCnt++;
-        }
+        DeviceCtrlCurrentState.MatchCnt = 1;
+        DeviceCtrlCurrentState.addr = queueMsg->msg[Region_AddrNumber];
     }
-#else  		//先发新协议
+
+
+
+
+    //先发新协议
     if(LowPowerDeviceMach(queueMsg->msg[Region_AddrNumber])==1)
     {
         LowPowerDeviceWakeUp(Wireless_Channel[0]);
@@ -533,6 +536,7 @@ void vFrameDeviceCtrlReorganize(QUEUE_WIRELESS_SEND_t *queueMsg)
         {
             if(value & 0x00000001)
             {
+                DeviceCtrlCurrentState.MatchCnt = 0;
                 break;
             }
         }
@@ -540,7 +544,6 @@ void vFrameDeviceCtrlReorganize(QUEUE_WIRELESS_SEND_t *queueMsg)
     }
     if(reSendCnt == 1)
     {
-        DebugPrintf("\n设备控制");
         reSendCnt = 0;
         while(reSendCnt<1)
         {
@@ -555,6 +558,7 @@ void vFrameDeviceCtrlReorganize(QUEUE_WIRELESS_SEND_t *queueMsg)
             {
                 if(value & 0x00000001)
                 {
+                    DeviceCtrlCurrentState.MatchCnt = 0;
                     break;
                 }
             }
@@ -562,7 +566,13 @@ void vFrameDeviceCtrlReorganize(QUEUE_WIRELESS_SEND_t *queueMsg)
         }
     }
 
-#endif
+    if((reSendCnt == 1)&&(DeviceCtrlCurrentState.MatchCnt > 1))
+    {
+        DebugPrintf("\n设备控制失败");
+        DeviceCtrlCurrentState.MatchCnt = 0;
+
+    }
+
 }
 
 /**
@@ -578,6 +588,18 @@ void vFrameDeviceMacthNet(QUEUE_WIRELESS_SEND_t *queueMsg)
     uint8_t reSendCnt = 0;
     uint32_t value;
     BaseType_t xResult;
+
+    if(queueMsg->msg[Region_AddrNumber] == DeviceMatcheCurrentState.addr)
+    {
+        DeviceMatcheCurrentState.MatchCnt ++;
+    }
+    else
+    {
+        DeviceMatcheCurrentState.MatchCnt = 0;
+        DeviceMatcheCurrentState.addr = queueMsg->msg[Region_AddrNumber];
+    }
+
+
 
     if(uxIsLowPowerDevice(queueMsg->msg[Region_DataValNumber+7]) == 1)				//判断设备的MAC最后1位低功耗设备
     {
@@ -597,13 +619,15 @@ void vFrameDeviceMacthNet(QUEUE_WIRELESS_SEND_t *queueMsg)
     while(reSendCnt<1)
     {
         queueMsg->toCh = Default_Channel;
-        xQueueSend(xQueueNetTask,queueMsg, (TickType_t)10);			//发到无线配网任务
+        xQueueSend(xQueueWirelessTx,queueMsg, (TickType_t)10);			//发到无线发射任务
         xResult = xTaskNotifyWait(0x00000000,0x00000002,&value,400);		//等待配网回应
 
         if(xResult == pdPASS)                                         //接收到应答
         {
             if(value & 0x00000002)
             {
+                DeviceMatcheCurrentState.MatchCnt = 0;
+                DebugPrintf("\n旧协议配网成功\n");
                 break;
             }
         }
@@ -623,18 +647,29 @@ void vFrameDeviceMacthNet(QUEUE_WIRELESS_SEND_t *queueMsg)
                                                    0);                                            //路由表长度
             queueMsg->toCh = Default_Channel;
             DebugPrintf("\n路由协议开始配网");
-            xQueueSend(xQueueNetTask,queueMsg, (TickType_t)10);			//发到无线配网任务
+            xQueueSend(xQueueWirelessTx,queueMsg, (TickType_t)10);			//发到无线发射任务
             xResult = xTaskNotifyWait(0x00000000,0x00000002,&value,400);		//等待配网回应
             if(xResult == pdPASS)                                         //接收到应答
             {
                 if(value & 0x00000002)
                 {
                     DebugPrintf("\n路由协议配网成功");
+                    DeviceMatcheCurrentState.MatchCnt = 0;
                     break;
                 }
             }
             reSendCnt ++;
         }
+    }
+
+
+
+    if((reSendCnt == 1)&&(DeviceMatcheCurrentState.MatchCnt > 4))
+    {
+        DebugPrintf("\n配网失败");
+        DeviceMatcheCurrentState.MatchCnt = 0;
+
+        xQueueSend(xQueueNetTask,queueMsg, (TickType_t)10);			//发到无线配网任务
     }
 }
 

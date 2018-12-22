@@ -10,6 +10,9 @@ uint8_t led_set_mode = 0;
 LED_Color_t led_set_color = LED_COLOR_ALL;
 uint8_t led_delay = 0;
 
+uint8_t led_last_mode = 0;        //上次状态
+LED_Color_t led_last_color = LED_COLOR_ALL;  //上次颜色
+
 
 const uint8_t led_breath_buff[32]=
 {

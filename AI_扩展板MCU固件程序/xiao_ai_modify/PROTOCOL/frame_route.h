@@ -123,8 +123,11 @@ uint8_t FrameRouterCompose(
 
 void  vRouteFrameMatchProcess(Device_Match_t *match,QUEUE_WIRELESS_SEND_t *pMsg);		
 void vQueryDeviceRssi(Device_Match_t *list);	
-void  FrameHeartCompose(uint8_t desAddr);			  
-
+void  FrameHeartCompose(uint8_t desAddr);	
+void vMasterToDeviceRSSISave(uint8_t addr,uint8_t rssi);	
+void RouteTableInit(void);	 
+void  SaveDeviceRouteTable(uint8_t desAddr, uint8_t *table,uint8_t routeLen); 
+void RouteTableRef(void);
 
 #endif
 

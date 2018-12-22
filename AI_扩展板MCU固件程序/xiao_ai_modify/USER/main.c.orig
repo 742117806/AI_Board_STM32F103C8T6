@@ -15,7 +15,7 @@ void vStartTask(void *pvParameters);   	//任务函数
 TaskHandle_t LedTask_Handler;    		//任务句柄
 void vLedTask(void *pvParameters);   	//任务函数
 
-#define NET_TASK_PRIO		5 			//任务优先级
+#define NET_TASK_PRIO		3 			//任务优先级
 #define NET_STK_SIZE 		192 		//任务堆栈大小	 
 TaskHandle_t NetTask_Handler;    		//任务句柄
 void vNetTask(void *pvParameters);   	//任务函数
@@ -25,7 +25,7 @@ void vNetTask(void *pvParameters);   	//任务函数
 TaskHandle_t WirelessRxTask_Handler;    		//任务句柄
 void vWirelessRxTask(void *pvParameters);   	//任务函数
 
-#define WIRELESS_TX_TASK_PRIO		3 			//任务优先级
+#define WIRELESS_TX_TASK_PRIO		5 			//任务优先级
 #define WIRELESS_TX_STK_SIZE 		256 		//任务堆栈大小	 
 TaskHandle_t WirelessTxTask_Handler;    		//任务句柄
 void vWirelessTxTask(void *pvParameters);   	//任务函数
@@ -65,7 +65,7 @@ void AppTaskCreate(void)
                           (TaskHandle_t*  )&LedTask_Handler);   //任务句柄
     if(xReturn != pdPASS)
     {
-        DebugPrintf("\nvLedTask创建失败");
+        printf("\nvLedTask创建失败");
     }
 
     //创建KEY任务
@@ -77,7 +77,7 @@ void AppTaskCreate(void)
                            (TaskHandle_t*  )&NetTask_Handler);   //任务句柄
     if(xReturn != pdPASS)
     {
-        DebugPrintf("\nvNetTask创建失败");
+        printf("\nvNetTask创建失败");
     }
 
     //创建无线发射任务
@@ -89,7 +89,7 @@ void AppTaskCreate(void)
                            (TaskHandle_t*  )&WirelessRxTask_Handler);   //任务句柄
     if(xReturn != pdPASS)
     {
-        DebugPrintf("\nvWirelessRxTask创建失败");
+        printf("\nvWirelessRxTask创建失败");
     }
 
     //创建无线发射任务
@@ -101,7 +101,7 @@ void AppTaskCreate(void)
                            (TaskHandle_t*  )&WirelessTxTask_Handler);   //任务句柄
     if(xReturn != pdPASS)
     {
-        DebugPrintf("\nvWirelessTxTask创建失败");
+        printf("\nvWirelessTxTask创建失败");
     }
 
     //创建无线路由任务
@@ -172,7 +172,7 @@ int main(void)
 
 void vApplicationStackOverflowHook( TaskHandle_t xTask, char *pcTaskName )
 {
-    DebugPrintf("\n任务: %s 发现栈溢出",pcTaskName);
+    printf("\n任务: %s 发现栈溢出",pcTaskName);
 }
 
 
@@ -224,8 +224,7 @@ static void vLedTask(void *pvParameters)
     eKEY_VALUE key_now = KEY_NONE;  //当前按键
 
 
-    //LED_AroundStaSet(LED_COLOR_ALL,OFF);
-	LED_ALL_StaSet(OFF);
+    LED_AroundStaSet(LED_COLOR_ALL,ON);
     while(1)
     {
         vLedProcess();
@@ -327,18 +326,21 @@ static void vNetTask(void *pvParameters)
                     {
                         heart_delay1 = 0;
 
-                        if(heart_index < deviceInfo.match.deviceNum)
+						
+
+						
+						if(heart_index < deviceInfo.match.deviceNum)
                         {
-                            DebugPrintf("\n查询设备心跳");
-                            FrameHeartCompose(deviceInfo.match.deviceBuff[heart_index++]);
+												DebugPrintf("\n查询设备心跳");
+                        FrameHeartCompose(deviceInfo.match.deviceBuff[heart_index++]);
 
                         }
-                        else
-                        {
-
-                            heart_index = 0;
-                            heart_delay2 = 0;
-                        }
+						else
+						{
+													
+                            heart_index = 0; 
+							heart_delay2 = 0;
+						}
                     }
                 }
             }

@@ -4,7 +4,7 @@
 
 #include "includes.h"
 
-#define Version_Number 0x010304	//硬件版本01，主版本03，次版本 04
+#define Version_Number 0x010306	//硬件版本01，主版本03，次版本 06
 #define DEVICE_NUM_MAX	225
 
  //保存设备信息的首地址(最后2K的开始地址为0x0800F800)
@@ -60,11 +60,20 @@ typedef struct DeviceInfo_
     Device_Match_t match;	//匹配过的设备
 } DeviceInfo_t;
 
+//当前配网的设备状态结构体
+typedef struct DeviceMatcheCurrentState_
+{
+	uint8_t addr;           //设备地址
+	uint8_t MatchCnt;		//配网次数
+}DeviceMatcheCurrentState_t;
+
 
 
 
 extern DeviceInfo_t deviceInfo;
 extern Device_Match_t sleep_device;     //低功耗设备
+extern DeviceMatcheCurrentState_t     DeviceMatcheCurrentState;
+extern DeviceMatcheCurrentState_t     DeviceCtrlCurrentState;
 
 void  vDeviceMatchNet(uint8_t *buff,uint8_t len);
 void vDeviceInfoInit(void);

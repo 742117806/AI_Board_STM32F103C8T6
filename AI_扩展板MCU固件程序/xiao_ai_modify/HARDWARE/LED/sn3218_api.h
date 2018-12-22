@@ -19,6 +19,9 @@ extern uint8_t led_set_mode;
 extern LED_Color_t led_set_color;
 extern uint8_t led_delay;
 
+extern uint8_t led_last_mode;        //上次状态
+extern LED_Color_t led_last_color;  //上次颜色
+
 
 void LED_AroundStaSet(LED_Color_t color_index,uint8_t sta);
 void LED_CenterStaSet(uint8_t sta);

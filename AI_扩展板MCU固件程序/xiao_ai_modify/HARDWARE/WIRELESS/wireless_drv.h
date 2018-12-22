@@ -25,6 +25,12 @@
 #define TX_STATE 7
 #define RX_STATE 8
 
+//#define SI4438_RX_Pin GPIO_Pin_12
+//#define SI4438_RX_GPIO_Port GPIOB
+//#define SI4438_TX_Pin GPIO_Pin_13
+//#define SI4438_TX_GPIO_Port GPIOB
+
+
 typedef enum
 {
   Wireless_NoError = 0,
@@ -156,5 +162,6 @@ extern uint8_t const RxHop_Close[];
 
 void Si4438_Property_Init(void);
 void Si4438_Delay_ms(uint16_t nms);
+
 
 #endif
