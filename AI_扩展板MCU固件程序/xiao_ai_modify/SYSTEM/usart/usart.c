@@ -171,10 +171,11 @@ void vUart2Init(u32 bound)
 
 void USART2_IRQHandler(void)                	//串口2中断服务程序
 {   
-	u8 Res;
+//	u8 Res;
 	if(USART_GetITStatus(USART2, USART_IT_RXNE) != RESET)  //接收中断(接收到的数据必须是0x0d 0x0a结尾)
 	{
-        Res =USART_ReceiveData(USART2);	//读取接收到的数据
+//        Res =USART_ReceiveData(USART2);	//读取接收到的数据
+		USART_ReceiveData(USART2);	//读取接收到的数据
 	}
 }
 

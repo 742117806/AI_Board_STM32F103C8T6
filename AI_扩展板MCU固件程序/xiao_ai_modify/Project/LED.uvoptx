@@ -157,7 +157,7 @@
           <Type>0</Type>
           <LineNumber>368</LineNumber>
           <EnabledFlag>1</EnabledFlag>
-          <Address>134239748</Address>
+          <Address>134239816</Address>
           <ByteObject>0</ByteObject>
           <HtxType>0</HtxType>
           <ManyObjects>0</ManyObjects>
@@ -229,6 +229,21 @@
           <count>11</count>
           <WinNumber>1</WinNumber>
           <ItemText>led_set_mode</ItemText>
+        </Ww>
+        <Ww>
+          <count>12</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>led_last_mode</ItemText>
+        </Ww>
+        <Ww>
+          <count>13</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>led_set_color</ItemText>
+        </Ww>
+        <Ww>
+          <count>14</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>led_last_color</ItemText>
         </Ww>
       </WatchWindow1>
       <MemoryWindow1>

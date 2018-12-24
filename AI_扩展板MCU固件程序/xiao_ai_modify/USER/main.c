@@ -31,10 +31,10 @@ TaskHandle_t WirelessTxTask_Handler;    		//任务句柄
 void vWirelessTxTask(void *pvParameters);   	//任务函数
 
 
-#define WIRELESS_ROUTE_TASK_PRIO		1 			//任务优先级
-#define WIRELESS_ROUTE_STK_SIZE 		192 		//任务堆栈大小	 
-TaskHandle_t WirelessRouteTask_Handler;    			//任务句柄
-void vWirelessRouteTask(void *pvParameters);   		//任务函数
+//#define WIRELESS_ROUTE_TASK_PRIO		1 			//任务优先级
+//#define WIRELESS_ROUTE_STK_SIZE 		192 		//任务堆栈大小	 
+//TaskHandle_t WirelessRouteTask_Handler;    			//任务句柄
+//void vWirelessRouteTask(void *pvParameters);   		//任务函数
 
 /************************************************
 
@@ -234,7 +234,7 @@ static void vLedTask(void *pvParameters)
         vTouchProcess(key_now);         //执行按键相应功能
         if(key_now == KEY_ALL_REL)
         {
-            vLedCtrlModeLoop(led_set_mode);
+            vLedCtrlModeLoop(led_set_mode,led_set_color);
         }
 
         vTaskDelay(25);
@@ -410,20 +410,20 @@ static void vWirelessRxTask(void *pvParameters)
 }
 
 
-static void vWirelessRouteTask(void *pvParameters)
-{
-    uint8_t index = 0;
-    while(1)
-    {
-        //printf("\nvWirelessRouteTask");
-        for(index = 0; index<deviceInfo.match.deviceNum; index++)
-        {
-            FrameHeartCompose(deviceInfo.match.deviceBuff[index]);
-            vTaskDelay(1000);
-        }
-        vTaskDelay(30000);
-    }
-}
+//static void vWirelessRouteTask(void *pvParameters)
+//{
+//    uint8_t index = 0;
+//    while(1)
+//    {
+//        //printf("\nvWirelessRouteTask");
+//        for(index = 0; index<deviceInfo.match.deviceNum; index++)
+//        {
+//            FrameHeartCompose(deviceInfo.match.deviceBuff[index]);
+//            vTaskDelay(1000);
+//        }
+//        vTaskDelay(30000);
+//    }
+//}
 /**
 *****************下面注视的代码是通过调用库函数来实现IO控制的方法*****************************************
 int main(void)

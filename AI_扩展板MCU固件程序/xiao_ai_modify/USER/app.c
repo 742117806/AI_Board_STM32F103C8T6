@@ -270,7 +270,6 @@ void vLedProcess(void)
 
     LedFunc_t *ledFunc ;
     uint8_t color;
-    uint8_t vol;
     uint8_t mode;
 
 
@@ -281,17 +280,20 @@ void vLedProcess(void)
     if (xResult == pdPASS) 							/* 成功接收，并通过串口将数据打印出来 */
     {
         ledFunc = (LedFunc_t*)&Msg;
+		
         color = ledFunc->ledColor;
-        vol = ledFunc->ledColor;
         mode = ledFunc->cmdType;
 
-        //led_last_mode  = led_set_mode;
-        led_last_color  = led_set_color;
 
-        led_set_mode = mode;
-        led_set_color = uxLecColorConvert((eLedColor)color);
+        led_set_color = uxLecColorConvert((eLedColor)color);		
+		led_set_mode = mode;
+		if(mode != AROUND_INDEX)
+		{
+			led_last_color  = led_set_color;
+		}
+		
         led_delay  = 0;
-        LedModeSet(mode,color);
+        LedModeSet(mode,(LED_Color_t)color);
 
     }
 
@@ -307,7 +309,7 @@ void vLedProcess(void)
 *********************************************************************************************************
 */
 
-void vLedCtrlModeLoop(uint8_t mode)
+void vLedCtrlModeLoop(uint8_t mode,uint8_t color)
 {
     //eLedColor color;
 
@@ -317,13 +319,13 @@ void vLedCtrlModeLoop(uint8_t mode)
     case  AROUND_OFF:    //外围灯熄灭
         break;
     case AROUND_BREATH: //外围灯呼吸模式
-		 LED_AroundBreath(led_set_color,2);
+		 LED_AroundBreath((LED_Color_t)color,2);
         break;
     case AROUND_ON:     //外围灯点亮	
 		vLedAroundDeal(BLUE);
         break;
     case AROUND_FLOW:   //外围灯流水模式
-		LED_AroundFlow(led_set_color,2);
+		LED_AroundFlow((LED_Color_t)color,2);
         break;
     case CENTRE_MODE:   //中间灯模式
         break;
@@ -334,6 +336,7 @@ void vLedCtrlModeLoop(uint8_t mode)
             led_delay = 0;
             LED_AroundStaSet(LED_COLOR_ALL,OFF);
 			led_set_mode = led_last_mode;
+			led_set_color = led_last_color;
         }
         break;
     }
