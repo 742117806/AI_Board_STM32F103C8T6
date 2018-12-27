@@ -3,14 +3,6 @@
 #include "includes.h"
 
 MASTER_DEVICE_RSSI_t master2device_Rssi[DEVICE_NUM_MAX];
-
-typedef struct routPath_
-{
-    uint8_t addr;		//目标地址
-    uint8_t len;			//路由表长度
-    uint8_t node[3];		//中继节点
-} routPath_t;
-
 routPath_t  routPath[DEVICE_NUM_MAX];
 
 //逻辑地址和MAC地址相互对应
@@ -281,9 +273,29 @@ void vQueryDeviceRssi(Device_Match_t *list)
 //路由表初始化
 void RouteTableRef(void)
 {
+    uint8_t i,j;
     if(deviceInfo.match.deviceNum == 0)
     {
         memset(routPath,0x00,sizeof(routPath));
+    }
+    else     //清除已经不存在设备的路径
+    {
+        for(i=0; i<DEVICE_NUM_MAX; i++)
+        {
+            for(j=0; j< deviceInfo.match.deviceNum; j++)
+            {
+                if(routPath[i].addr == deviceInfo.match.deviceBuff[j])
+                {
+                    break;
+                }
+            }
+			if(j==deviceInfo.match.deviceNum)      //routPath[i].addr地址设备不存在了,应该清除
+			{
+			   routPath[i].addr = 0;
+			   routPath[i].len = 0;
+			   memset(routPath[i].node,0x00,sizeof(routPath[i].node));			   
+			}
+        }
     }
 }
 /**
@@ -299,34 +311,70 @@ void RouteTableRef(void)
 void  SaveDeviceRouteTable(uint8_t desAddr, uint8_t *table,uint8_t routeLen)
 {
     uint8_t i;
-	uint8_t exsit = 0;		//设备存在标记
+    uint8_t exsit = 0;		//设备存在标记
     if(routeLen > 3)return;
 
-	//查询设备地址是否存在
-	for(i=0; i<DEVICE_NUM_MAX; i++)
+    //查询设备地址是否存在
+    for(i=0; i<DEVICE_NUM_MAX; i++)
     {
-	    if(routPath[i].addr == desAddr)  //设备已存在，更新路由表
-		{
-		    exsit = 1;
-		}
-	}
+        if(routPath[i].addr == desAddr)  //设备已存在，更新路由表
+        {
+            exsit = 1;
+        }
+    }
 
-	if(exsit == 0)  //设备不存在
-	{
-		//插入路由表
-		for(i=0; i<DEVICE_NUM_MAX; i++)
-		{
-			if(routPath[i].addr == 0)    //找到空余位置
-			{
-				
-				routPath[i].addr = desAddr;
-				routPath[i].len = routeLen;
-				memcpy(routPath[i].node, table,routPath[i].len);
-			}
-		}
-	}
+    if(exsit == 0)  //设备不存在
+    {
+        //插入路由表
+        for(i=0; i<DEVICE_NUM_MAX; i++)
+        {
+            if(routPath[i].addr == 0)    //找到空余位置
+            {
+
+                routPath[i].addr = desAddr;
+                routPath[i].len = routeLen;
+                memcpy(routPath[i].node, table,routPath[i].len);
+            }
+        }
+    }
 }
 
+/**
+*********************************************************************************************************
+*  函 数 名: DeviceCtrlFromeRouteTable
+*  功能说明: 通过路由表控制设备
+*  形    参: @desAddr 目标设备地址
+			 @msg 要发送的控制命令
+*  返 回 值: 无
+*********************************************************************************************************
+*/
+void  DeviceCtrlFromeRouteTable(uint8_t desAddr,routPath_t *routPath,QUEUE_WIRELESS_SEND_t *queueMsg)
+{
+	uint8_t i = 0;
+	
+	routPath[1].addr = 0x57;
+	routPath[1].len =  1;
+	routPath[1].node[0]=0x33;
+	routPath[1].node[0]=0x55;
+	routPath[1].node[0]=0x66;
+	//查找设备对应的路由表
+	for(i=0;i<DEVICE_NUM_MAX;i++)
+	{
+		if(desAddr == routPath[i].addr)    //找到对应的路由表
+		{
+			//FrameRouterCompose()
+			queueMsg->len = FrameRouterCompose(queueMsg->msg[Region_AddrNumber], //目的设备地址
+								   queueMsg->msg,                                        //配网命令数据
+								   queueMsg->len,                                          //配网命令长度
+								   queueMsg->msg,                                 //缓存配网命令的邮箱
+								   routPath[i].node,                                            //路由表
+								   routPath[i].len);
+			 xQueueSend(xQueueWirelessTx, queueMsg, (TickType_t)10);			//直接发到无线发射任务
+			break;
+		}
+	}
+	
+}
 
 
 

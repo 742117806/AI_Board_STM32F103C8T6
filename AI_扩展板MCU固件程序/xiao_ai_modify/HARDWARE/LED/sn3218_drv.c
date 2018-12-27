@@ -138,6 +138,7 @@ void SN3218A_WriteCont(uint8_t reg_startAddr,uint8_t reg_endAddr, uint8_t value)
 
 void SN3218_RegRef(void)
 {
+	SN3218A_Write(SN3218_OFF_REG, 0x01);    //寄存器打开
 	SN3218A_Write(SN3218_REF_REG, 0x00);	//刷新寄存器值生效
 }
 

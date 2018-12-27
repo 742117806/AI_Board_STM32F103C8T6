@@ -90,11 +90,12 @@ void vTouchRelease(eKEY_VALUE key)
 *  返 回 值: 无
 *********************************************************************************************************
 */
+uint8_t test_w[100]={0};
 void vTouchProcess(eKEY_VALUE key_now)
 {
-//   uint8_t pcWriteBuffer[100];
     static   eKEY_VALUE key_last  = KEY_NONE;   //上次按键
-
+    uint8_t i = 0;
+	
 
     switch(key_now)
     {
@@ -109,6 +110,11 @@ void vTouchProcess(eKEY_VALUE key_now)
         LedDispKey1(LED_COLOR_ORANG,ON);
         key_last = key_now;
 
+		for(i=0;i<100;i++)
+		{
+			test_w[i]=i;
+		}
+		vWirelessSendBytes(Default_Channel,test_w,100);
 
         break;
     case KEY1_PRES_L:		//长按
@@ -415,6 +421,10 @@ void vWirelessRecvProcess(void)
         Si4438_Receive_Start(Wireless_Channel[0]); //重新开始接收无线数据
         // xSemaphoreGive(xSemWireless);			//释放无线资源占用互斥信号量
     }
+	else  if(WIRELESS_STATUS == Wireless_RX_Failure)
+	{
+	    WIRELESS_STATUS = Wireless_RX_Receiving;
+	}
 
 }
 
@@ -574,6 +584,7 @@ void vFrameDeviceCtrlReorganize(QUEUE_WIRELESS_SEND_t *queueMsg)
         DebugPrintf("\n设备控制失败");
         DeviceCtrlCurrentState.MatchCnt = 0;
 
+		DeviceCtrlFromeRouteTable(queueMsg->msg[4],routPath,queueMsg);
     }
 
 }
@@ -830,8 +841,6 @@ uint8_t  LowPowerDeviceMach(uint8_t addr)
     }
     return 0;
 }
-
-
 
 
 

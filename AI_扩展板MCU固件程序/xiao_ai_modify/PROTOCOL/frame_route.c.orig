@@ -6,16 +6,16 @@ MASTER_DEVICE_RSSI_t master2device_Rssi[DEVICE_NUM_MAX];
 
 typedef struct routPath_
 {
-   uint8_t addr;		//目标地址
-   uint8_t len;			//路由表长度
-   uint8_t node[3];		//中继节点
-}routPath_t;
+    uint8_t addr;		//目标地址
+    uint8_t len;			//路由表长度
+    uint8_t node[3];		//中继节点
+} routPath_t;
 
 routPath_t  routPath[DEVICE_NUM_MAX];
 
 //逻辑地址和MAC地址相互对应
 //struct  addr_link_mac_
-//{ 
+//{
 //	uint8_t addr;
 //	uint8_t mac1;
 //	uint8_t mac7;
@@ -47,10 +47,10 @@ uint8_t FrameRouterCompose(
 
     uint16_t crc_16;
     uint8_t out_frameLen;
-	
+
 
     out_frameLen = srcLen + routerLen + 13;
-	
+
     memset(temp, 0x00, out_frameLen + 4);
     p = (FRAME_ROUTER_MASTER_CMD_t *)temp;
     p->head_h = 0x69;
@@ -74,7 +74,7 @@ uint8_t FrameRouterCompose(
     temp[p->len + 1] = crc_16 & 0x00ff;
     temp[p->len + 2] = 0x96;
     temp[p->len + 3] = 0x96;
-	memcpy(outData, temp, p->len + 4);
+    memcpy(outData, temp, p->len + 4);
     return p->len + 4;
 }
 
@@ -107,7 +107,7 @@ uint8_t FrameRouterCompose_ext(uint8_t *desAddrMAC,
     p->len_c = ~(p->len);
     p->ctrl.mode = 0;
     p->ctrl.type = 0;
-	
+
     p->netNum[0] = deviceInfo.aes_field.addr_GA[1];
     p->netNum[1] = deviceInfo.aes_field.addr_GA[2];
     memcpy(p->des_addr, desAddrMAC, 8);
@@ -131,39 +131,39 @@ uint8_t FrameRouterCompose_ext(uint8_t *desAddrMAC,
 *********************************************************************************************************
 *  函 数 名: FrameHeartCompose
 *  功能说明: 心跳帧
-*  形    参: 
+*  形    参:
 *  返 回 值: 无
 *********************************************************************************************************
 */
 void  FrameHeartCompose(uint8_t desAddr)
 {
-	//uint8_t temp[256] = {0};
-	QUEUE_WIRELESS_SEND_t queueMsg;
+    //uint8_t temp[256] = {0};
+    QUEUE_WIRELESS_SEND_t queueMsg;
 
-	uint8_t *p  = queueMsg.msg;
-	uint16_t crc_16;
-	*p++ = 0x69; //帧头
-	*p++ = 0x69;
-	*p++ = 13;		//长度
-	*p++ = ~13;      //长度取反
-	*p++ = 0x05;      //帧控制码 
-	*p++ = deviceInfo.aes_field.addr_GA[1];
-	*p++ = deviceInfo.aes_field.addr_GA[2];
-	*p++ = desAddr;
-	*p++ = deviceInfo.mac_frame.mac[4];
-	*p++ = deviceInfo.mac_frame.mac[5];
-	*p++ = deviceInfo.mac_frame.mac[6];
-	*p++ = 0x0f;		//路由表级数和通信方式 （0载波或1无线）
-	*p++ = 0;           //路由表长度
-	crc_16 = CRC16_2(queueMsg.msg, queueMsg.msg[2]);
-	*p++ = crc_16 >> 8;
-	*p++ = crc_16 & 0x00ff;
-	*p++ = 0x96;
-	*p++ = 0x96;
+    uint8_t *p  = queueMsg.msg;
+    uint16_t crc_16;
+    *p++ = 0x69; //帧头
+    *p++ = 0x69;
+    *p++ = 13;		//长度
+    *p++ = ~13;      //长度取反
+    *p++ = 0x05;      //帧控制码
+    *p++ = deviceInfo.aes_field.addr_GA[1];
+    *p++ = deviceInfo.aes_field.addr_GA[2];
+    *p++ = desAddr;
+    *p++ = deviceInfo.mac_frame.mac[4];
+    *p++ = deviceInfo.mac_frame.mac[5];
+    *p++ = deviceInfo.mac_frame.mac[6];
+    *p++ = 0x0f;		//路由表级数和通信方式 （0载波或1无线）
+    *p++ = 0;           //路由表长度
+    crc_16 = CRC16_2(queueMsg.msg, queueMsg.msg[2]);
+    *p++ = crc_16 >> 8;
+    *p++ = crc_16 & 0x00ff;
+    *p++ = 0x96;
+    *p++ = 0x96;
 
-	queueMsg.len = queueMsg.msg[2]+4;
-	queueMsg.toCh = Wireless_Channel[0];
-	xQueueSend(xQueueWirelessTx,&queueMsg, (TickType_t)10);			//发到无线发送任务	
+    queueMsg.len = queueMsg.msg[2]+4;
+    queueMsg.toCh = Wireless_Channel[0];
+    xQueueSend(xQueueWirelessTx,&queueMsg, (TickType_t)10);			//发到无线发送任务
 
 }
 
@@ -178,30 +178,30 @@ void  FrameHeartCompose(uint8_t desAddr)
 */
 void vMasterToDeviceRSSISave(uint8_t addr,uint8_t rssi)
 {
-	uint8_t i=0;
-	uint8_t exsit = 0;
-	
-	for(i=0;i<DEVICE_NUM_MAX;i++)
+    uint8_t i=0;
+    uint8_t exsit = 0;
+
+    for(i=0; i<DEVICE_NUM_MAX; i++)
     {
-		if(master2device_Rssi[i].addr == addr)		//检测地址是否存在
-		{
+        if(master2device_Rssi[i].addr == addr)		//检测地址是否存在
+        {
             master2device_Rssi[i].rssi = rssi;
-			exsit = 1;
-			break;									//退出检测
-		}	
+            exsit = 1;
+            break;									//退出检测
+        }
     }
-	
-	if(exsit == 0)			//设备不存在
-	{
-		for(i=0;i<DEVICE_NUM_MAX;i++)
-		{
-			if(master2device_Rssi[i].addr == 0)		//查找空闲位置
-			{
-				master2device_Rssi[i].rssi = rssi;
-				break;									//退出检测
-			}	
-		}
-	}
+
+    if(exsit == 0)			//设备不存在
+    {
+        for(i=0; i<DEVICE_NUM_MAX; i++)
+        {
+            if(master2device_Rssi[i].addr == 0)		//查找空闲位置
+            {
+                master2device_Rssi[i].rssi = rssi;
+                break;									//退出检测
+            }
+        }
+    }
 }
 
 
@@ -218,34 +218,34 @@ void vMasterToDeviceRSSISave(uint8_t addr,uint8_t rssi)
 
 void  vRouteFrameMatchProcess(Device_Match_t *match,QUEUE_WIRELESS_SEND_t *pMsg)
 {
-	uint8_t i=0;
-	uint8_t *mac = &pMsg->msg[Region_DataValNumber];     //路由帧数据
-	uint8_t router_table[3]={0x00};      //路由表
-	QUEUE_WIRELESS_SEND_t msgBuff;
-	
+    uint8_t i=0;
+    uint8_t *mac = &pMsg->msg[Region_DataValNumber];     //路由帧数据
+    uint8_t router_table[3]= {0x00};     //路由表
+    QUEUE_WIRELESS_SEND_t msgBuff;
 
-	for(i = 0;i < match->deviceNum;i++)
+
+    for(i = 0; i < match->deviceNum; i++)
     {
-		//memcpy(&msgBuff,pMsg,sizeof(QUEUE_WIRELESS_SEND_t));
-		if(match->deviceBuff[i] ==  pMsg->msg[Region_AddrNumber])
-		{
-		     continue;
-		}
-		else
-		{
-			router_table[0] = match->deviceBuff[i];			//从已经配置的设备中选一个设备作为路由中继，进行当前设备的配网中继	
-		}		
-		
-		msgBuff.len = FrameRouterCompose_ext(mac, //配网设备的MAC
-					  pMsg->msg,                                        //配网命令数据
-					  pMsg->len,                                          //配网命令长度
-					  msgBuff.msg,                                 //缓存配网命令的邮箱
-					  router_table,                                            //路由表
-					  1);                                            //路由表长度     1继路由
-						  
-						  
-		xQueueSend(xQueueWirelessTx, &msgBuff, (TickType_t)10);			//直接发到无线发射任务	
-		vTaskDelay(300);
+        //memcpy(&msgBuff,pMsg,sizeof(QUEUE_WIRELESS_SEND_t));
+        if(match->deviceBuff[i] ==  pMsg->msg[Region_AddrNumber])
+        {
+            continue;
+        }
+        else
+        {
+            router_table[0] = match->deviceBuff[i];			//从已经配置的设备中选一个设备作为路由中继，进行当前设备的配网中继
+        }
+
+        msgBuff.len = FrameRouterCompose_ext(mac, //配网设备的MAC
+                                             pMsg->msg,                                        //配网命令数据
+                                             pMsg->len,                                          //配网命令长度
+                                             msgBuff.msg,                                 //缓存配网命令的邮箱
+                                             router_table,                                            //路由表
+                                             1);                                            //路由表长度     1继路由
+
+
+        xQueueSend(xQueueWirelessTx, &msgBuff, (TickType_t)10);			//直接发到无线发射任务
+        vTaskDelay(300);
     }
 }
 
@@ -270,20 +270,35 @@ void  vRouteFrameMatchProcess(Device_Match_t *match,QUEUE_WIRELESS_SEND_t *pMsg)
 */
 void vQueryDeviceRssi(Device_Match_t *list)
 {
-	uint8_t i;
-	for(i=0;i<list->deviceNum;i++)
-	{
-		FrameHeartCompose(list->deviceBuff[i]);
-	}
-	
+    uint8_t i;
+    for(i=0; i<list->deviceNum; i++)
+    {
+        FrameHeartCompose(list->deviceBuff[i]);
+    }
+
 }
 
 //路由表初始化
-void RouteTableInit(void)
+void RouteTableRef(void)
 {
-	if(deviceInfo.match.deviceNum == 0)
+	uint8_t i,j;
+    if(deviceInfo.match.deviceNum == 0)
+    {
+        memset(routPath,0x00,sizeof(routPath));
+    }
+	else     //清除已经不存在设备的路径
 	{
-		memset(routPath,0x00,sizeof(routPath));
+        for(j=0;j<deviceInfo.match.deviceNum;j++)
+		{
+	    for(i=0;i<DEVICE_NUM_MAX;i++)
+		{
+		   if(routPath[i].addr == deviceInfo.match.deviceBuff[j])
+		   {
+		   
+		  
+		  }
+		 }
+		 }
 	}
 }
 /**
@@ -298,19 +313,33 @@ void RouteTableInit(void)
 */
 void  SaveDeviceRouteTable(uint8_t desAddr, uint8_t *table,uint8_t routeLen)
 {
-	uint8_t i;
-	  if(routeLen > 3)return;
-	  
-	  for(i=0;i<DEVICE_NUM_MAX;i++)
-	  {
-		if(routPath[i].addr == 0)
+    uint8_t i;
+	uint8_t exsit = 0;		//设备存在标记
+    if(routeLen > 3)return;
+
+	//查询设备地址是否存在
+	for(i=0; i<DEVICE_NUM_MAX; i++)
+    {
+	    if(routPath[i].addr == desAddr)  //设备已存在，更新路由表
 		{
-		  routPath[i].addr = desAddr;
-		  routPath[i].len = routeLen;
-		  memcpy(routPath[i].node, table,routPath[i].len);
-		  }
-	  }
-	  
+		    exsit = 1;
+		}
+	}
+
+	if(exsit == 0)  //设备不存在
+	{
+		//插入路由表
+		for(i=0; i<DEVICE_NUM_MAX; i++)
+		{
+			if(routPath[i].addr == 0)    //找到空余位置
+			{
+				
+				routPath[i].addr = desAddr;
+				routPath[i].len = routeLen;
+				memcpy(routPath[i].node, table,routPath[i].len);
+			}
+		}
+	}
 }
 
 

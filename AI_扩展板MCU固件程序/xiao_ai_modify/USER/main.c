@@ -320,7 +320,7 @@ static void vNetTask(void *pvParameters)
             else
             {
                 heart_delay2 ++;
-                if(heart_delay2 > 300)	//30Ãë
+                if(heart_delay2 > 600)	//60Ãë
                 {
                     heart_delay1 ++;
                     if(heart_delay1 > 30)

@@ -254,7 +254,7 @@ void LED_AroundBreath(LED_Color_t color,uint8_t speed)
 */
 void LedDispKey1(LED_Color_t color,uint8_t sta)
 {
-    //SN3218_LedStaSet(0,OFF);		//所有LED灭
+	SN3218A_WriteCont(SN3218_PWM1_REG,SN3218_PWM18_REG,LED_AROUND_LIGHT_VALUE);   //初始化所有LED的PWM值
 	switch(color)
 	{
 	case LED_COLOR_ORANG:
@@ -285,7 +285,7 @@ void LedDispKey1(LED_Color_t color,uint8_t sta)
 */
 void LedDispKey3(LED_Color_t color,uint8_t sta)
 {
-    //SN3218_LedStaSet(0,OFF);		//所有LED灭
+	SN3218A_WriteCont(SN3218_PWM1_REG,SN3218_PWM18_REG,LED_AROUND_LIGHT_VALUE);   //初始化所有LED的PWM值
 	switch(color)
 	{
 	case LED_COLOR_ORANG:
