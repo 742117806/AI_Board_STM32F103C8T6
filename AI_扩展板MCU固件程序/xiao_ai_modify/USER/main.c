@@ -189,7 +189,7 @@ static void vStartTask(void *pvParameters)
 {
 
     vUart1Init(38400);
-    vUart2Init(38400);
+    vUart2Init(9600);
     vSystemLogoDisplay();			//打印LOGO信息
     vKeyInit();						//按键初始化
     SN3218_Init();
@@ -320,7 +320,7 @@ static void vNetTask(void *pvParameters)
             else
             {
                 heart_delay2 ++;
-                if(heart_delay2 > 600)	//60秒
+                if(heart_delay2 > 1200)	//120秒
                 {
                     heart_delay1 ++;
                     if(heart_delay1 > 30)

@@ -352,11 +352,11 @@ void  DeviceCtrlFromeRouteTable(uint8_t desAddr,routPath_t *routPath,QUEUE_WIREL
 {
 	uint8_t i = 0;
 	
-	routPath[1].addr = 0x57;
-	routPath[1].len =  1;
-	routPath[1].node[0]=0x33;
-	routPath[1].node[0]=0x55;
-	routPath[1].node[0]=0x66;
+//	routPath[1].addr = 0x57;
+//	routPath[1].len =  1;
+//	routPath[1].node[0]=0x33;
+//	routPath[1].node[0]=0x55;
+//	routPath[1].node[0]=0x66;
 	//查找设备对应的路由表
 	for(i=0;i<DEVICE_NUM_MAX;i++)
 	{

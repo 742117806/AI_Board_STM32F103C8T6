@@ -102,7 +102,7 @@ void vUart1Init(u32 bound)
 
     //USART1_RX	  GPIOA.10初始化
     GPIO_InitStructure.GPIO_Pin = GPIO_Pin_10;//PA10
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;//浮空输入
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;//上拉输入
     GPIO_Init(GPIOA, &GPIO_InitStructure);//初始化GPIOA.10
 
     //Usart1 NVIC 配置
@@ -144,7 +144,7 @@ void vUart2Init(u32 bound)
 
     //USART1_RX	  GPIOA.3初始化
     GPIO_InitStructure.GPIO_Pin = GPIO_Pin_3;//PA3
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;//浮空输入
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;//上拉输入
     GPIO_Init(GPIOA, &GPIO_InitStructure);//初始化GPIOA.3
 
     //Usart1 NVIC 配置
@@ -157,9 +157,9 @@ void vUart2Init(u32 bound)
     //USART 初始化设置
 
     USART_InitStructure.USART_BaudRate = bound;//串口波特率
-    USART_InitStructure.USART_WordLength = USART_WordLength_8b;//字长为8位数据格式
+    USART_InitStructure.USART_WordLength = USART_WordLength_9b;//字长为9位数据格式
     USART_InitStructure.USART_StopBits = USART_StopBits_1;//一个停止位
-    USART_InitStructure.USART_Parity = USART_Parity_No;//无奇偶校验位
+    USART_InitStructure.USART_Parity = USART_Parity_Even;//奇校验位
     USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;//无硬件数据流控制
     USART_InitStructure.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;	//收发模式
 
@@ -171,11 +171,13 @@ void vUart2Init(u32 bound)
 
 void USART2_IRQHandler(void)                	//串口2中断服务程序
 {   
-//	u8 Res;
+	u8 Res;
 	if(USART_GetITStatus(USART2, USART_IT_RXNE) != RESET)  //接收中断(接收到的数据必须是0x0d 0x0a结尾)
 	{
-//        Res =USART_ReceiveData(USART2);	//读取接收到的数据
-		USART_ReceiveData(USART2);	//读取接收到的数据
+        Res =USART_ReceiveData(USART2);	//读取接收到的数据
+		//UartSendData(USART2,Res);
+		//Carrier2UartFrameRec(Res,&sUart2Rx);
+		vUartRxFrame(Res,&sUart2Rx);
 	}
 }
 

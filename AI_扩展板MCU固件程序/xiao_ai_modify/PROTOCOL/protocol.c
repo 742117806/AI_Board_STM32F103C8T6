@@ -47,6 +47,22 @@ const uint8_t CMD_DEVICE_CTRL[][3]= {
 
 
 sUartRx_t sUart1Rx;		//定义一个串口协议接收结构体变量
+//sCarrierRx_t sUart2Rx=     //定义一个串口协议接收结构体变量
+//{
+//    Carrier_FrameHead1,
+//    0,
+//	0,
+//    {0},
+//    0,
+
+//};
+sUartRx_t sUart2Rx =
+{
+    0,
+	0,
+	{0},
+	0,
+};
 uint8_t frameNume = 0;		//发送帧命时使用的帧包号（0-15）
 uint8_t wait_frameNum = 0;		//等待的回应的帧号
 
@@ -207,6 +223,111 @@ void vUartRxFrame(uint8_t rx_data, sUartRx_t *pu_buf)
         break;
     }
 }
+
+/**
+*********************************************************************************************************
+*  函 数 名: Carrier2UartFrameRec
+*  功能说明: 载波串口接收数据
+*  形    参: @rx_data 串口接收的数据
+			 @pu_buf 存放协议数据结构体
+*  返 回 值: 无
+*********************************************************************************************************
+*/
+void Carrier2UartFrameRec(uint8_t rec, sCarrierRx_t *pu_buf)
+{
+//    pu_buf->time_out_cnt = 0;
+//    pu_buf->frame_buff[pu_buf->total_len] = rec;
+//    pu_buf->total_len ++;
+	static uint8_t frame_len = 0;
+    switch (pu_buf->status)
+    {
+    case Carrier_FrameHead1:
+        if(rec == 0x69)
+        {
+			pu_buf->rec_len = 0;
+			frame_len = 0;
+			
+			pu_buf->frame_buff[pu_buf->rec_len++] = rec;
+			pu_buf->status = Carrier_FrameHead2;
+        }
+        break;
+    case Carrier_FrameHead2:
+		if(rec == 0x69)
+        {
+			pu_buf->frame_buff[pu_buf->rec_len++] = rec;
+			pu_buf->status = Carrier_Datalen;
+        }
+		else
+		{
+		   pu_buf->status = Carrier_FrameHead1;
+		}
+        break;
+    case Carrier_Datalen:
+		frame_len = rec;
+		pu_buf->frame_buff[pu_buf->rec_len++] = rec;
+		pu_buf->status = Carrier_Datalen_c;
+        break;
+    case Carrier_Datalen_c:
+		if((rec + frame_len)==0xff)
+		{
+			pu_buf->frame_buff[pu_buf->rec_len++] = rec;
+		   pu_buf->status = Carrier_Data;
+		}
+		else
+		{
+			pu_buf->status = Carrier_FrameHead1;
+		}
+        break;
+	case Carrier_Data:
+		 pu_buf->frame_buff[pu_buf->rec_len++] = rec;
+		if(pu_buf->rec_len == frame_len)
+		{
+			pu_buf->status = Carrier_FrameCRCH;
+		}
+		
+		break;
+    case Carrier_FrameCRCH:
+		pu_buf->frame_buff[pu_buf->rec_len++] = rec;
+		pu_buf->status = Carrier_FrameCRCL;
+        break;
+    case Carrier_FrameCRCL:
+		pu_buf->frame_buff[pu_buf->rec_len++] = rec;
+		pu_buf->status = Carrier_FrameEnd1;
+        break;
+    case Carrier_FrameEnd1:
+		if(rec == 0x96)
+		{
+		   pu_buf->frame_buff[pu_buf->rec_len++] = rec;
+		    pu_buf->status = Carrier_FrameEnd2;
+		}
+		else
+		{
+		  pu_buf->status = Carrier_FrameHead1;
+		}
+		
+        break;
+    case Carrier_FrameEnd2:
+		if(rec == 0x96)
+		{
+		   pu_buf->frame_buff[pu_buf->rec_len++] = rec;
+		   pu_buf->status = Carrier_Finished;
+		   pu_buf->total_len = pu_buf->rec_len;
+		}
+		else
+		{
+		  pu_buf->status = Carrier_FrameHead1;
+		}
+        break;
+    default:
+        break;
+    }
+    if(pu_buf->rec_len > (UART_BUFF_LEN-1))
+    {
+        pu_buf->rec_len = 0;
+    }
+
+}
+
 
 /**
 *********************************************************************************************************
@@ -378,6 +499,8 @@ static void  vUartFrameCmdInitDeal(uint8_t *buff,uint8_t len)
     case 0xFFFB:
         break;
     case 0xFF00:
+		FrameCmdLocalAck(buff,len,0,0);         //应答
+		report_flag = 0;
         DebugPrintf("\n密文下发");
         vAES_Save(buff,len);
         vAppWirelessInit();
@@ -842,7 +965,7 @@ uint8_t  uxIsMyGroup(uint8_t *group)
 *  返 回 值: 无
 *********************************************************************************************************
 */
-void vMastAckToDevice(uint8_t *buff,uint8_t len)
+void vMastAckToDevice(uint8_t *buff,uint8_t len,uint8_t mode)
 {
 
     QUEUE_WIRELESS_SEND_t queueMsg;
@@ -852,7 +975,7 @@ void vMastAckToDevice(uint8_t *buff,uint8_t len)
 
     queueMsg.msg[Region_CmdNumber] &= ~FCMD_DIR_BIT;    //传输方向清零，表示主站发出
     queueMsg.msg[Region_DataLenNumber] = 0;		//应答数据长度为0
-	queueMsg.msg[Region_CmdNumber] &= ~0x07;		//74编码 
+    queueMsg.msg[Region_CmdNumber] &= ~0x07;		//74编码
     //queueMsg.msg[Region_SeqNumber] &= 0xf0;
 
     queueMsg.len = Frame_Compose(queueMsg.msg);
@@ -867,7 +990,14 @@ void vMastAckToDevice(uint8_t *buff,uint8_t len)
     {
         DebugPrintf("\n不用加密");
     }
-    xQueueSend(xQueueWirelessTx,&queueMsg, (TickType_t)10);			//直接发到无线发射任务
+	if(mode == 0)
+	{
+		xQueueSend(xQueueWirelessTx,&queueMsg, (TickType_t)10);			//直接发到无线发射任务
+	}
+	else
+	{
+	    CarrierSendBytes(queueMsg.msg,queueMsg.len);
+	}
 }
 
 /**
@@ -879,7 +1009,7 @@ void vMastAckToDevice(uint8_t *buff,uint8_t len)
 *  返 回 值: 无
 *********************************************************************************************************
 */
-void vMastAckToDeviceAtRoute(uint8_t *buff,uint8_t len)
+void vMastAckToDeviceAtRoute(uint8_t *buff,uint8_t len,uint8_t mode)
 {
 
     QUEUE_WIRELESS_SEND_t queueMsg;
@@ -911,7 +1041,15 @@ void vMastAckToDeviceAtRoute(uint8_t *buff,uint8_t len)
                                       queueMsg.msg,                                 //缓存配网命令的邮箱
                                       0,                                            //路由表
                                       0);
-    xQueueSend(xQueueWirelessTx, &queueMsg, (TickType_t)10);			//直接发到无线发射任务
+	if(mode == 0)
+	{
+		xQueueSend(xQueueWirelessTx, &queueMsg, (TickType_t)10);			//直接发到无线发射任务
+	}
+	else
+	{
+	    CarrierSendBytes(queueMsg.msg,queueMsg.len);
+	}
+	
 }
 
 ///**
@@ -988,36 +1126,36 @@ void vMastAckToDeviceAtRoute(uint8_t *buff,uint8_t len)
 *********************************************************************************************************
 */
 extern TaskHandle_t StartTask_Handler;
-void vWirelessFrameDeal(WLS *wireless)
+void vWirelessFrameDeal(uint8_t *packBuff,uint8_t packLen,uint8_t mode)
 {
-    uint8_t *pframe = wireless->Wireless_RxData;
-    uint8_t frame_len = wireless->Wireless_PacketLength;
+    //uint8_t *pframe = wireless->Wireless_RxData;
+    uint8_t frame_len = packLen;
     uint8_t frame_flag = 0;
     uint8_t cmdUpFlag = 1;		//是否上报到串口
     uint8_t index = 0;       //应用数据（0xAC协议帧的）开始位置
 
 
 
-    if(xWirelessRouterCmdCheck(wireless->Wireless_RxData,frame_len) == FRAME_OK)              //路由协议
+    if(xWirelessRouterCmdCheck(packBuff,frame_len) == FRAME_OK)              //路由协议
     {
 
-        frame_len = wireless->Wireless_RxData[2];
+        frame_len = packBuff[2];
         //解码
         if(frame_len<140)
         {
-            FrameRouteData_74Convert(wireless->Wireless_RxData,wireless->Wireless_PacketLength,&frame_len,0);
+            FrameRouteData_74Convert(packBuff,packLen,&frame_len,0);
         }
 
-        index = 13+wireless->Wireless_RxData[12];//算出应用数据的开始位置  (0x69协议开始的13个字节+路由表长度)
+        index = 13+packBuff[12];//算出应用数据的开始位置  (0x69协议开始的13个字节+路由表长度)
         //解密
-        if(wireless->Wireless_RxData[index] == 0xAC)             //加密是在AC协议帧才有，所有判断路由协议帧中是否有AC协议
+        if(packBuff[index] == 0xAC)             //加密是在AC协议帧才有，所有判断路由协议帧中是否有AC协议
         {
-            if((wireless->Wireless_RxData[index + Region_SeqNumber]&FSEQ_ENC_BIT) > 0)
+            if((packBuff[index + Region_SeqNumber]&FSEQ_ENC_BIT) > 0)
             {
                 DebugPrintf("\n需要解密");
                 if(frame_len < (index +4))return;
 
-                Encrypt_Convert(&wireless->Wireless_RxData[index],frame_len-index-4 , &frame_len, 0);   //解密
+                Encrypt_Convert(&packBuff[index],frame_len-index-4 , &frame_len, 0);   //解密
 
             }
         }
@@ -1027,21 +1165,21 @@ void vWirelessFrameDeal(WLS *wireless)
         }
 
         //判断是否为自己的家庭组
-        if(uxIsMyGroup(&wireless->Wireless_RxData[5])==0)return;
+        if(uxIsMyGroup(&packBuff[5])==0)return;
 
         //判断是否为有路由长度
-        if(wireless->Wireless_RxData[12]>0)
+        if(packBuff[12]>0)
         {
             DebugPrintf("\n存在路由表");
         }
 
-        frame_flag =  (wireless->Wireless_RxData[4] & 0x81);                //协议主站从站组网或者通信帧位判断
+        frame_flag =  (packBuff[4] & 0x81);                //协议主站从站组网或者通信帧位判断
 
         switch(frame_flag)
         {
         case 0x00:      //主站组网
             cmdUpFlag = 0;       //不用再通过串口发送
-            frame_flag =  (pframe[4] & 0x06);                //心跳，通信模式
+            frame_flag =  (packBuff[4] & 0x06);                //心跳，通信模式
             switch(frame_flag)
             {
             case 0x00:		//非心跳正常功耗帧
@@ -1057,7 +1195,7 @@ void vWirelessFrameDeal(WLS *wireless)
             }
             break;
         case 0x01:		//主站通信
-            frame_flag =  (pframe[4] & 0x06);                //心跳，通信模式
+            frame_flag =  (packBuff[4] & 0x06);                //心跳，通信模式
             switch(frame_flag)
             {
             case 0x00:		//非心跳正常功耗帧
@@ -1073,7 +1211,7 @@ void vWirelessFrameDeal(WLS *wireless)
             }
             break;
         case 0x80:		//从站组网
-            frame_flag =  (pframe[4] & 0x06);                //心跳，通信模式
+            frame_flag =  (packBuff[4] & 0x06);                //心跳，通信模式
             switch(frame_flag)
             {
             case 0x00:      //非心跳正常功耗帧
@@ -1081,7 +1219,7 @@ void vWirelessFrameDeal(WLS *wireless)
             {
                 xTaskNotify(StartTask_Handler,0x00000002,eSetBits);   //设备配网成功应答
             }
-            UseComSendBytes(pframe+index, (pframe+index)[Region_DataLenNumber]+11);
+            UseComSendBytes(packBuff+index, (packBuff+index)[Region_DataLenNumber]+11);
             cmdUpFlag = 0;       //不用再通过串口发送
             DebugPrintf("\n从站回应配网成功");
             break;
@@ -1096,18 +1234,18 @@ void vWirelessFrameDeal(WLS *wireless)
             }
             break;
         case 0x81:		//从站通信
-            frame_flag =  (pframe[4] & 0x06);                //心跳，通信模式
+            frame_flag =  (packBuff[4] & 0x06);                //心跳，通信模式
 
             switch(frame_flag)
             {
             case 0x00:      //非心跳正常功耗帧
-                if(pframe[index+Region_CmdNumber]&0x08)		//判断是否为事件帧
+                if(packBuff[index+Region_CmdNumber]&0x08)		//判断是否为事件帧
                 {
                     DebugPrintf("\n从站事件帧");
-                    if(vDeviceIsExistList(&deviceInfo.match,pframe[index+Region_AddrNumber]) == 1)
+                    if(vDeviceIsExistList(&deviceInfo.match,packBuff[index+Region_AddrNumber]) == 1)
                     {
                         //UseComSendBytes(&pframe[index],(pframe+index)[Region_DataLenNumber]+11);
-                        vMastAckToDeviceAtRoute(&pframe[index],(pframe+index)[Region_DataLenNumber]+11) ;
+                        vMastAckToDeviceAtRoute(&packBuff[index],(packBuff+index)[Region_DataLenNumber]+11,mode) ;
                     }
                     else
                     {
@@ -1129,9 +1267,9 @@ void vWirelessFrameDeal(WLS *wireless)
             case 0x04:      //心跳正常功耗帧
                 cmdUpFlag = 0;       //不用再通过串口发送
                 DebugPrintf("\n从站通信跳正常功耗帧");
-                if(pframe[12]>0)		// 路由表长度大于0
+                if(packBuff[12]>0)		// 路由表长度大于0
                 {
-                    SaveDeviceRouteTable(pframe[4],&pframe[13],pframe[12]);        //保存路由表
+                    SaveDeviceRouteTable(packBuff[4],&packBuff[13],packBuff[12]);        //保存路由表
                 }
                 break;
             case 0x06:      //心跳低功耗帧
@@ -1141,34 +1279,34 @@ void vWirelessFrameDeal(WLS *wireless)
         }
         if(cmdUpFlag == 1)    //需要发串口数据
         {
-            UseComSendBytes(pframe+index, (pframe+index)[Region_DataLenNumber]+11);
+            UseComSendBytes(packBuff+index, (packBuff+index)[Region_DataLenNumber]+11);
         }
 
     }
-    else if(wireless->Wireless_RxData[0]==0xAC)     //非路由协议，旧协议
+    else if(packBuff[0]==0xAC)     //非路由协议，旧协议
     {
-        if(uxIsMyGroup(&wireless->Wireless_RxData[3])==0)return;
-        frame_len = wireless->Wireless_RxData[Region_DataLenNumber];
+        if(uxIsMyGroup(&packBuff[3])==0)return;
+        frame_len = packBuff[Region_DataLenNumber];
         if(frame_len<=70)
         {
-            FrameData_74Convert(wireless->Wireless_RxData,wireless->Wireless_PacketLength,&frame_len,0);
+            FrameData_74Convert(packBuff,packLen,&frame_len,0);
         }
         //解密
-        if((wireless->Wireless_RxData[Region_SeqNumber]&FSEQ_ENC_BIT) > 0)
+        if((packBuff[Region_SeqNumber]&FSEQ_ENC_BIT) > 0)
         {
             DebugPrintf("\n需要解密");
 
-           Encrypt_Convert(wireless->Wireless_RxData,frame_len , &frame_len, 0);   //解密
+            Encrypt_Convert(packBuff,frame_len , &frame_len, 0);   //解密
         }
         else
         {
             DebugPrintf("\n不用解密");
-			frame_len = frame_len+11;
+            frame_len = frame_len+11;
         }
-        
-        if(xUartFrameCmdCheck(pframe,frame_len) == FRAME_ERR)return;    //帧校验错误
 
-        frame_flag = pframe[Region_CmdNumber]&0x98;
+        if(xUartFrameCmdCheck(packBuff,frame_len) == FRAME_ERR)return;    //帧校验错误
+
+        frame_flag = packBuff[Region_CmdNumber]&0x98;
 
         switch(frame_flag)
         {
@@ -1180,11 +1318,11 @@ void vWirelessFrameDeal(WLS *wireless)
             break;
         case 0x90:          //从站，普通帧
             DebugPrintf("\n旧协议，从站，普通帧");
-            if(wait_frameNum == (pframe[Region_SeqNumber]&0x0f))
+            if(wait_frameNum == (packBuff[Region_SeqNumber]&0x0f))
             {
-                if((pframe[Region_DataIDNumber]==0xFF)&&		//是配网帧回应
-                        (pframe[Region_DataIDNumber+1]==0xFF)&&
-                        (pframe[Region_DataIDNumber+2]==0xFF))
+                if((packBuff[Region_DataIDNumber]==0xFF)&&		//是配网帧回应
+                        (packBuff[Region_DataIDNumber+1]==0xFF)&&
+                        (packBuff[Region_DataIDNumber+2]==0xFF))
                 {
                     DebugPrintf("\n设备配网成功应答");
                     xTaskNotify(StartTask_Handler,0x00000002,eSetBits);   //设备配网成功应答
@@ -1199,9 +1337,9 @@ void vWirelessFrameDeal(WLS *wireless)
             break;
         case 0x98:          //从站，事件帧
             DebugPrintf("\n旧协议，从站，事件帧");
-            if(vDeviceIsExistList(&deviceInfo.match,pframe[Region_AddrNumber]) == 1)
+            if(vDeviceIsExistList(&deviceInfo.match,packBuff[Region_AddrNumber]) == 1)
             {
-                vMastAckToDevice(pframe,frame_len);
+                vMastAckToDevice(packBuff,frame_len,mode);
             }
             else
             {
@@ -1209,10 +1347,10 @@ void vWirelessFrameDeal(WLS *wireless)
             }
             break;
         }
-		if(cmdUpFlag == 1)    //需要发串口数据
-		{
-			UseComSendBytes(pframe, frame_len);
-		}
+        if(cmdUpFlag == 1)    //需要发串口数据
+        {
+            UseComSendBytes(packBuff, frame_len);
+        }
 
     }
 

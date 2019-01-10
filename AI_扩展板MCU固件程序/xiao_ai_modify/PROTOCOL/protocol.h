@@ -7,6 +7,7 @@
 								  
 ////////////////////////////////////////////////////////////////////////////////// 
 #define UseComSendBytes(d,l)		UartSendBytes(USART1,d,l)
+#define CarrierSendBytes(d,l)		UartSendBytes(USART2,d,l)
 
 #define UART_BUFF_LEN	254
 
@@ -110,6 +111,22 @@ typedef enum
     UartRx_Finished, //接收完成
 } eUartRxSta_t;
 
+//串口接收数据状态枚举
+typedef enum
+{
+    Carrier_FrameHead1 = 0,
+	Carrier_FrameHead2,
+    Carrier_Datalen,
+    Carrier_Datalen_c,
+	Carrier_Data,
+    Carrier_FrameCRCH,
+	Carrier_FrameCRCL,
+	 Carrier_FrameEnd1,
+	Carrier_FrameEnd2,
+    Carrier_Finished, //接收完成
+} eCarrierRxSta_t;
+
+
 //串口接收数据结构
 typedef struct
 {
@@ -118,6 +135,18 @@ typedef struct
     uint8_t frame_buff[UART_BUFF_LEN];
     volatile uint8_t time_out_cnt;
 } sUartRx_t;
+
+
+
+//载波串口接收数据结构
+typedef struct
+{
+    volatile eCarrierRxSta_t status;
+    uint8_t rec_len;
+	uint8_t total_len;
+    uint8_t frame_buff[UART_BUFF_LEN];
+    volatile uint8_t time_out_cnt;
+} sCarrierRx_t;
 
 //检测一帧数据返回结果
 typedef enum
@@ -160,6 +189,7 @@ typedef struct
 extern sUartRx_t sUart1Rx;
 extern uint8_t frameNume;
 extern uint8_t wait_frameNum;		//等待的回应的帧号
+extern sUartRx_t sUart2Rx ;		//定义一个串口协议接收结构体变量
 
 //各个命令的数据标识
 extern const uint8_t CMD_INIT[][3];
@@ -173,7 +203,8 @@ void vUartFrameProcess(sUartRx_t *pbuff);
 void vUartAesProcess(sUartRx_t *pbuff);
 void FrameCmdLocalAck(uint8_t *cmdBuff,uint8_t cmdLen,uint8_t *userDat,uint8_t userLen);
 void FrameCmdLocalAck1(uint8_t *cmdBuff,uint8_t cmdLen,uint8_t *userDat,uint8_t userLen);
-void vWirelessFrameDeal(WLS *wireless);
+void vWirelessFrameDeal(uint8_t *packBuff,uint8_t packLen,uint8_t mode);
+void Carrier2UartFrameRec(uint8_t rec, sCarrierRx_t *pu_buf);
 
 
 		 				    

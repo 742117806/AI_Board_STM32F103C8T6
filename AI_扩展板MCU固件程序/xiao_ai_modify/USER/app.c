@@ -94,7 +94,7 @@ uint8_t test_w[100]={0};
 void vTouchProcess(eKEY_VALUE key_now)
 {
     static   eKEY_VALUE key_last  = KEY_NONE;   //上次按键
-    uint8_t i = 0;
+//    uint8_t i = 0;
 	
 
     switch(key_now)
@@ -110,12 +110,12 @@ void vTouchProcess(eKEY_VALUE key_now)
         LedDispKey1(LED_COLOR_ORANG,ON);
         key_last = key_now;
 
-		for(i=0;i<100;i++)
-		{
-			test_w[i]=i;
-		}
-		vWirelessSendBytes(Default_Channel,test_w,100);
-
+//		for(i=0;i<100;i++)
+//		{
+//			test_w[i]=i;
+//		}
+//		vWirelessSendBytes(Default_Channel,test_w,100);
+		CarrierSendBytes("123456789",9);
         break;
     case KEY1_PRES_L:		//长按
         //DebugPrintf("\nKEY1_PRES_L");
@@ -416,7 +416,7 @@ void vWirelessRecvProcess(void)
     {
 
         //DebugSendBytes(Wireless_Buf.Wireless_RxData,Wireless_Buf.Wireless_PacketLength);
-        vWirelessFrameDeal(&Wireless_Buf);
+        vWirelessFrameDeal(Wireless_Buf.Wireless_RxData,Wireless_Buf.Wireless_PacketLength,0);
         // xSemaphoreTake(xSemWireless,1000);			//获取无线资源占用互斥信号量
         Si4438_Receive_Start(Wireless_Channel[0]); //重新开始接收无线数据
         // xSemaphoreGive(xSemWireless);			//释放无线资源占用互斥信号量
@@ -425,6 +425,15 @@ void vWirelessRecvProcess(void)
 	{
 	    WIRELESS_STATUS = Wireless_RX_Receiving;
 	}
+
+	if(sUart2Rx.status == UartRx_FrameHead)
+	{
+		vTaskDelay(3);
+		//CarrierSendBytes(sUart2Rx.frame_buff,sUart2Rx.total_len);
+		vWirelessFrameDeal(sUart2Rx.frame_buff,sUart2Rx.total_len,1);
+		sUart2Rx.status = UartRx_FrameHead;
+	}
+		
 
 }
 
@@ -528,7 +537,7 @@ void vFrameDeviceCtrlReorganize(QUEUE_WIRELESS_SEND_t *queueMsg)
 
 
 
-
+    #if 1
     //先发新协议
     if(LowPowerDeviceMach(queueMsg->msg[Region_AddrNumber])==1)
     {
@@ -578,13 +587,16 @@ void vFrameDeviceCtrlReorganize(QUEUE_WIRELESS_SEND_t *queueMsg)
             reSendCnt ++;
         }
     }
+	#endif
 
     if((reSendCnt == 1)&&(DeviceCtrlCurrentState.MatchCnt > 1))
     {
         DebugPrintf("\n设备控制失败");
         DeviceCtrlCurrentState.MatchCnt = 0;
 
-		DeviceCtrlFromeRouteTable(queueMsg->msg[4],routPath,queueMsg);
+		//DeviceCtrlFromeRouteTable(queueMsg->msg[4],routPath,queueMsg);            //进行路由路径控制			
+		CarrierSendBytes(queueMsg->msg,queueMsg->len);
+	
     }
 
 }
@@ -602,6 +614,10 @@ void vFrameDeviceMacthNet(QUEUE_WIRELESS_SEND_t *queueMsg)
     uint8_t reSendCnt = 0;
     uint32_t value;
     BaseType_t xResult;
+	uint8_t carrier_buff[100]={0};
+	uint8_t carrier_len = 0;
+	
+	memcpy(carrier_buff,queueMsg->msg,queueMsg->len);    //保存原来的命令数据
 
     if(queueMsg->msg[Region_AddrNumber] == DeviceMatcheCurrentState.addr)
     {
@@ -683,7 +699,9 @@ void vFrameDeviceMacthNet(QUEUE_WIRELESS_SEND_t *queueMsg)
         DebugPrintf("\n配网失败");
         DeviceMatcheCurrentState.MatchCnt = 0;
 
-        xQueueSend(xQueueNetTask,queueMsg, (TickType_t)10);			//发到无线配网任务
+        //xQueueSend(xQueueNetTask,queueMsg, (TickType_t)10);			//发到无线配网任务
+		CarrierSendBytes(carrier_buff,carrier_len);                //发载波
+
     }
 }
 
