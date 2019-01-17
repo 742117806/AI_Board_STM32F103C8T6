@@ -77,13 +77,15 @@ Rev_0301  使用STM32F103C8T6 功能延续前一版本
 
 
 //错误字
-#define Key_NotReady                        0x53           //密钥未就绪
-#define LANG_Addr_Error                     0x54           //转发的数据，群组地址错误
 
-#define Cipher_Error                        0X04           //
-#define Parameter_Error                     0x05           //群组地址或密文不一样
-#define Format_Error                        0X06           //AES格式错误
-#define Data_Error                          0X07           //群组地址不一样
+#define LANG_Addr_Error                     0x54           //电器控制命令帧 群组地址错误
+
+#define Cipher_Error                        0X04           //密码错误
+#define Parameter_Error                     0x05           //电器组网命令帧 密文不一样
+#define Format_Error                        0X06           //密文下发时候，AES格式错误
+#define Data_Error                          0X07           //电器控制命令帧 群组地址不一样
+#define FRAME_CRC_Error                     0X08           //命令帧 CRC 错误
+#define Key_NotReady                        0x09           //密钥未就绪
 
 #define FrameFunction_Exist                 0x57           //帧功能已存在
 

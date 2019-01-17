@@ -58,7 +58,7 @@ sUartRx_t sUart1Rx;		//定义一个串口协议接收结构体变量
 //};
 sUartRx_t sUart2Rx =
 {
-    0,
+    UartRx_FrameHead,
 	0,
 	{0},
 	0,

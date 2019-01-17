@@ -48,7 +48,7 @@
             <InvalidFlash>1</InvalidFlash>
           </TargetStatus>
           <OutputDirectory>..\OBJ\</OutputDirectory>
-          <OutputName>Fashion_Ext_FW_V1_3_06</OutputName>
+          <OutputName>Fashion_Ext_FW_V1_3_07</OutputName>
           <CreateExecutable>1</CreateExecutable>
           <CreateLib>0</CreateLib>
           <CreateHexFile>1</CreateHexFile>
@@ -335,7 +335,7 @@
               <MiscControls></MiscControls>
               <Define>STM32F10X_MD,USE_STDPERIPH_DRIVER</Define>
               <Undefine></Undefine>
-              <IncludePath>..\CORE;..\STM32F10x_FWLib\inc;..\SYSTEM\delay;..\SYSTEM\sys;..\SYSTEM\usart;..\HARDWARE\LED;..\HARDWARE\KEY;..\FreeRTOS\include;..\FreeRTOS\portable\RVDS\ARM_CM3;..\PROTOCOL;..\HARDWARE\WIRELESS;..\HARDWARE\SPI;..\HARDWARE\EXTI;..\HARDWARE\STMFLASH;..\USER</IncludePath>
+              <IncludePath>..\CORE;..\STM32F10x_FWLib\inc;..\SYSTEM\delay;..\SYSTEM\sys;..\SYSTEM\usart;..\HARDWARE\LED;..\HARDWARE\KEY;..\FreeRTOS\include;..\FreeRTOS\portable\RVDS\ARM_CM3;..\PROTOCOL;..\HARDWARE\WIRELESS;..\HARDWARE\SPI;..\HARDWARE\EXTI;..\HARDWARE\STMFLASH;..\USER;..\HARDWARE\WDG</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -464,6 +464,11 @@
               <FileType>1</FileType>
               <FilePath>..\HARDWARE\STMFLASH\stmflash.c</FilePath>
             </File>
+            <File>
+              <FileName>wdg.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\HARDWARE\WDG\wdg.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -543,6 +548,11 @@
               <FileName>stm32f10x_flash.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\STM32F10x_FWLib\src\stm32f10x_flash.c</FilePath>
+            </File>
+            <File>
+              <FileName>stm32f10x_iwdg.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\STM32F10x_FWLib\src\stm32f10x_iwdg.c</FilePath>
             </File>
           </Files>
         </Group>

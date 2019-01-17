@@ -200,10 +200,11 @@ static void vStartTask(void *pvParameters)
     AppQueueCreate();               //创建邮箱
     AppSemaphoreCreate();
     AppTaskCreate();				//创建任务
-
+    IWDG_Init(4,625);    //与分频数为64,重载值为625,溢出时间为1s
     while(1)
     {
         vUartFrameProcess(&sUart1Rx);
+		IWDG_Feed();
         vTaskDelay(10);
     }
 

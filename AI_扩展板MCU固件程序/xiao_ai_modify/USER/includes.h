@@ -86,6 +86,7 @@
 #include "rsa.h"
 #include "aes.h"
 #include "encrypt.h"
+#include "wdg.h"
 #include "app.h"
 
 /* 在主函数中调用 */
