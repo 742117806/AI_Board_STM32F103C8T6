@@ -75,7 +75,7 @@ uint8_t wait_frameNum = 0;		//等待的回应的帧号
 *  返 回 值: 无
 *********************************************************************************************************
 */
-void vUartRxFrame(uint8_t rx_data, sUartRx_t *pu_buf)
+void vUartRxFrame(uint8_t rx_data, sUartRx_t *pu_buf,uint8_t mode)
 {
     static uint8_t Len_Cnt;
     switch (pu_buf->status)
@@ -135,11 +135,23 @@ void vUartRxFrame(uint8_t rx_data, sUartRx_t *pu_buf)
     case UartRx_Data:
         pu_buf->frame_buff[pu_buf->total_len] = rx_data;
         pu_buf->total_len++;
-        if (++Len_Cnt >= pu_buf->frame_buff[Region_DataLenNumber])
-        {
-            Len_Cnt = 0;
-            pu_buf->status = UartRx_FrameCs;
-        }
+		if(mode == 0)
+		{
+		    if (++Len_Cnt >= pu_buf->frame_buff[Region_DataLenNumber])
+			{
+				Len_Cnt = 0;
+				pu_buf->status = UartRx_FrameCs;
+			}
+		}
+		else if(mode == 1)
+		{
+			if (++Len_Cnt >= (pu_buf->frame_buff[Region_DataLenNumber]/16+16))   //加密过后的数据协议长度和实际收到的数据长度关系是 实际长度 ＝ 长度/16+16
+			{
+				Len_Cnt = 0;
+				pu_buf->status = UartRx_FrameCs;
+			}
+		}
+       
 
         break;
 
@@ -850,6 +862,7 @@ eFrameCheckType xUartAesCmdCheck(uint8_t *buff,uint8_t len)
 */
 void vUartAesProcess(sUartRx_t *pbuff)
 {
+	uint8_t com_rdata;
     if(pbuff->status == UartRx_Finished)
     {
         if(xUartAesCmdCheck(pbuff->frame_buff,pbuff->total_len) == FRAME_OK)
@@ -859,6 +872,10 @@ void vUartAesProcess(sUartRx_t *pbuff)
         }
         pbuff->status = UartRx_FrameHead;
     }
+	else if(comGetChar(COM1,&com_rdata)==1)
+	{
+		 vUartRxFrame(com_rdata,&sUart1Rx,0);
+	}
 
 }
 
@@ -874,6 +891,7 @@ void vUartAesProcess(sUartRx_t *pbuff)
 void vUartFrameProcess(sUartRx_t *pbuff)
 {
     uint8_t cmdflag = 0;
+	uint8_t com_rdata;
 
     if(pbuff->status == UartRx_Finished)
     {
@@ -900,6 +918,10 @@ void vUartFrameProcess(sUartRx_t *pbuff)
         }
         pbuff->status = UartRx_FrameHead;
     }
+	else if(comGetChar(COM1,&com_rdata)==1)
+	{
+		 vUartRxFrame(com_rdata,&sUart1Rx,0);
+	}
 }
 
 /**
@@ -1286,8 +1308,8 @@ void vWirelessFrameDeal(uint8_t *packBuff,uint8_t packLen,uint8_t mode)
     else if(packBuff[0]==0xAC)     //非路由协议，旧协议
     {
         if(uxIsMyGroup(&packBuff[3])==0)return;
-        frame_len = packBuff[Region_DataLenNumber];
-        if(frame_len<=70)
+       // frame_len = packBuff[Region_DataLenNumber];
+        if((mode == 0)&&(frame_len<=70))
         {
             FrameData_74Convert(packBuff,packLen,&frame_len,0);
         }
@@ -1297,11 +1319,6 @@ void vWirelessFrameDeal(uint8_t *packBuff,uint8_t packLen,uint8_t mode)
             DebugPrintf("\n需要解密");
 
             Encrypt_Convert(packBuff,frame_len , &frame_len, 0);   //解密
-        }
-        else
-        {
-            DebugPrintf("\n不用解密");
-            frame_len = frame_len+11;
         }
 
         if(xUartFrameCmdCheck(packBuff,frame_len) == FRAME_ERR)return;    //帧校验错误
@@ -1318,7 +1335,7 @@ void vWirelessFrameDeal(uint8_t *packBuff,uint8_t packLen,uint8_t mode)
             break;
         case 0x90:          //从站，普通帧
             DebugPrintf("\n旧协议，从站，普通帧");
-            if(wait_frameNum == (packBuff[Region_SeqNumber]&0x0f))
+//            if(wait_frameNum == (packBuff[Region_SeqNumber]&0x0f))
             {
                 if((packBuff[Region_DataIDNumber]==0xFF)&&		//是配网帧回应
                         (packBuff[Region_DataIDNumber+1]==0xFF)&&

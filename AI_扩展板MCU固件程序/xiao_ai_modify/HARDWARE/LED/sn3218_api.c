@@ -99,9 +99,8 @@ void LED_AroundStaSet(LED_Color_t color_index,uint8_t sta)
         }
         break;
     }
-
-    SN3218_LedStaSet(9,led_center_sta);
     SN3218_RegRef();
+	LED_CenterOn();
 }
 
 /******************************************************************************
@@ -139,8 +138,7 @@ void LED_AroundPwmSet(LED_Color_t color_index,uint8_t pwm)
         }
         break;
     }
-
-    SN3218_LedPwmSet(9,10);
+    LED_CenterOn();
     SN3218_RegRef();
 }
 
@@ -170,6 +168,13 @@ void LED_CenterPwmSet(uint8_t pwm)
 {
     SN3218_LedPwmSet(9,pwm);
     SN3218_RegRef();
+}
+
+void LED_CenterOn(void)
+{
+	SN3218_LedStaSet(9,1);
+    SN3218_LedPwmSet(9,40);
+	SN3218_RegRef();
 }
 
 
@@ -240,8 +245,8 @@ void LED_AroundBreath(LED_Color_t color,uint8_t speed)
 		i ++;
 		if(i>=64)i=0;
 	}
+	
 	LED_AroundStaSet(color,ON);
-	SN3218_RegRef();
 }
 
 
@@ -272,8 +277,8 @@ void LedDispKey1(LED_Color_t color,uint8_t sta)
 		SN3218_LedStaSet(4,sta);	
 		break;
 	}
-
 	SN3218_RegRef();
+	LED_CenterOn();
 }
 
 /******************************************************************************
@@ -304,8 +309,8 @@ void LedDispKey3(LED_Color_t color,uint8_t sta)
 		SN3218_LedStaSet(14,sta);	
 		break;
 	}
-
 	SN3218_RegRef();
+	LED_CenterOn();
 }
 
 /******************************************************************************
@@ -330,9 +335,8 @@ void LedDispVol(uint8_t vol)
 		led_index ++;		
 		if(led_index > 8) led_index = 0;
 	}
-
-	LED_CenterStaSet(ON);
 	SN3218_RegRef();
+	LED_CenterOn();
 }
 
 

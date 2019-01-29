@@ -88,6 +88,7 @@
 #include "encrypt.h"
 #include "wdg.h"
 #include "app.h"
+#include "timer.h"
 
 /* 在主函数中调用 */
 //extern void vSetupSysInfoTest(void);

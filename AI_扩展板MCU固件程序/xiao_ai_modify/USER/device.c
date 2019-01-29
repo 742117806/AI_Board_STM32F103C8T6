@@ -30,11 +30,12 @@ void vDeviceInfoInit(void)
 		if(delay_cnt>100)
 		{
 			delay_cnt = 0;
-			DebugPrintf("\r\n请烧写设备的MAC地址，格式为HEX协议帧 \"68 20 08 xx xx xx xx xx xx xx xx CRC_H CRC_L\"");
-			UseComSendBytes("\r\n请烧写设备的MAC地址，格式为HEX协议帧 \"68 20 08 xx xx xx xx xx xx xx xx CRC_H CRC_L\"",
-			sizeof("\r\n请烧写设备的MAC地址，格式为HEX协议帧 \"68 20 08 xx xx xx xx xx xx xx xx CRC_H CRC_L\""));
+			//DebugPrintf("\r\n请烧写设备的MAC地址，格式为HEX协议帧 \"68 20 08 xx xx xx xx xx xx xx xx CRC_H CRC_L\"");
+			//UseComSendBytes("\r\n请烧写设备的MAC地址，格式为HEX协议帧 \"68 20 08 xx xx xx xx xx xx xx xx CRC_H CRC_L\"",
+			//sizeof("\r\n请烧写设备的MAC地址，格式为HEX协议帧 \"68 20 08 xx xx xx xx xx xx xx xx CRC_H CRC_L\""));
+			UartSendData(USART1,0x0C);
 		}
-		vTaskDelay(10);
+		delay_ms(10);
 	}
 }
 

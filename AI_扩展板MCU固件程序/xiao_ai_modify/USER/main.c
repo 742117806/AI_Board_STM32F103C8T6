@@ -3,12 +3,13 @@
 
 
 
+
 /*********************任务相关定义和声明************************/
 
 #define START_TASK_PRIO		6 			//任务优先级
 #define START_STK_SIZE 		192 		//任务堆栈大小	 
 TaskHandle_t StartTask_Handler;    		//任务句柄
-void vStartTask(void *pvParameters);   	//任务函数
+void vUartTask(void *pvParameters);   	//任务函数
 
 #define LED_TASK_PRIO		2 			//任务优先级
 #define LED_STK_SIZE 		64 		//任务堆栈大小	 
@@ -39,23 +40,21 @@ void vWirelessTxTask(void *pvParameters);   	//任务函数
 /************************************************
 
 ************************************************/
-/* 创建开始任务 */
-void StartTaskCreate(void)
-{
-    //创建开始任务
-    xTaskCreate((TaskFunction_t )vStartTask,            //任务函数
-                (const char*    )"vStartTask",          //任务名称
-                (uint16_t       )START_STK_SIZE,        //任务堆栈大小
-                (void*          )NULL,                  //传递给任务函数的参数
-                (UBaseType_t    )START_TASK_PRIO,       //任务优先级
-                (TaskHandle_t*  )&StartTask_Handler);   //任务句柄
-}
+
 /*创建任务*/
 
 void AppTaskCreate(void)
 {
     BaseType_t xReturn;
 
+        //创建串口任务
+    xTaskCreate((TaskFunction_t )vUartTask,            //任务函数
+                (const char*    )"vUartTask",          //任务名称
+                (uint16_t       )START_STK_SIZE,        //任务堆栈大小
+                (void*          )NULL,                  //传递给任务函数的参数
+                (UBaseType_t    )START_TASK_PRIO,       //任务优先级
+                (TaskHandle_t*  )&StartTask_Handler);   //任务句柄
+ #if 1
     //创建LED任务
     xReturn = xTaskCreate((TaskFunction_t )vLedTask,            //任务函数
                           (const char*    )"vLedTask",          //任务名称
@@ -115,7 +114,7 @@ void AppTaskCreate(void)
 //    {
 //        printf("\nvWirelessRouteTask创建失败");
 //    }
-
+       #endif
 }
 /* 创建邮箱 */
 void AppQueueCreate(void)
@@ -162,12 +161,22 @@ void vSystemLogoDisplay(void)
 */
 int main(void)
 {
-    delay_init(72);	    //延时函数初始化
-    NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2); //设置NVIC中断分组4:0位抢占优先级
+	delay_init();
+    bsp_InitUart();
+    vSystemLogoDisplay();			//打印LOGO信息
+    vKeyInit();						//按键初始化
+    SN3218_Init();
+    vDeviceInfoInit();
+    vAppWirelessInit();
+    AES_Init();                     //必须放到vDeviceInifoInit()后面
+    LowPowerDeviceInit();			//必须放到vDeviceInifoInit()后面
 
-    StartTaskCreate();
+    AppQueueCreate();               //创建邮箱
+    AppSemaphoreCreate();
+    AppTaskCreate();				//创建任务
 
     vTaskStartScheduler();          //开启任务调度
+
 }
 
 void vApplicationStackOverflowHook( TaskHandle_t xTask, char *pcTaskName )
@@ -185,27 +194,20 @@ void vApplicationStackOverflowHook( TaskHandle_t xTask, char *pcTaskName )
 *  优 先 级: 4
 *********************************************************************************************************
 */
-static void vStartTask(void *pvParameters)
+	uint8_t src[100]={0,1,2,3,4,5,6,17,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25};
+	uint8_t dst[100] = {0};
+	uint8_t src_len,dst_len;
+static void vUartTask(void *pvParameters)
 {
+    
 
-    vUart1Init(38400);
-    vUart2Init(9600);
-    vSystemLogoDisplay();			//打印LOGO信息
-    vKeyInit();						//按键初始化
-    SN3218_Init();
-    vDeviceInfoInit();
-    vAppWirelessInit();
-    AES_Init();                     //必须放到vDeviceInifoInit()后面
-    LowPowerDeviceInit();			//必须放到vDeviceInifoInit()后面
-    AppQueueCreate();               //创建邮箱
-    AppSemaphoreCreate();
-    AppTaskCreate();				//创建任务
     IWDG_Init(4,625);    //与分频数为64,重载值为625,溢出时间为1s
     while(1)
     {
         vUartFrameProcess(&sUart1Rx);
 		IWDG_Feed();
-        vTaskDelay(10);
+        
+		vTaskDelay(5);		
     }
 
 }
@@ -224,8 +226,6 @@ static void vLedTask(void *pvParameters)
 {
     eKEY_VALUE key_now = KEY_NONE;  //当前按键
 
-
-    //LED_AroundStaSet(LED_COLOR_ALL,OFF);
 	LED_ALL_StaSet(OFF);
     while(1)
     {
@@ -242,16 +242,6 @@ static void vLedTask(void *pvParameters)
     }
 }
 
-//const  uint8_t matchNetFrame[39]={
-//0xAC,0x43,0x00,0x2A,0x5B,0x0A,0x10,0x1C,0x80,0xFF,0xFF,0xFF,0x04,0x02,0x00,0x01,
-//0x00,0x00,0x21,0x01,0xA3,0xA6,0x89,0x26,0xAF,0xA7,0x13,0x29,0x33,0x0A,0xB1,0xA2,
-//0x15,0xF8,0xFB,0xDB,0x1C,0xC6,0x53
-//};
-//void FrameRouter(uint8_t *buff,uint8_t addr,uint8_t *mac,uint8_t *aes,uint8_t *routTab,uint8_t uint8_routLen)
-//{
-////AC 43 00 2A 5B 0A 10 1C 80 FF FF FF 04 02 00 01 00 00 21 01 A3 A6 89 26 AF A7 13 29 33 0A B1 A2 15 F8 FB DB 1C C6 53
-//   buff[0] =
-//}
 
 /*
 *********************************************************************************************************
@@ -386,7 +376,7 @@ static void vWirelessTxTask(void *pvParameters)
                     FrameData_74Convert(queueMsg.msg,queueMsg.len,&queueMsg.len,1);
                 }
             }
-            vWirelessSendBytes(queueMsg.toCh,queueMsg.msg,queueMsg.len);
+            vWirelessSendBytes(queueMsg.toCh,queueMsg.msg,queueMsg.len);   //发射无线数据
         }
         vTaskDelay(30);
     }

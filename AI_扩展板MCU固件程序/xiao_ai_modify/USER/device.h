@@ -4,7 +4,7 @@
 
 #include "includes.h"
 
-#define Version_Number 0x010307	//硬件版本01，主版本03，次版本 06
+#define Version_Number 0x010308	//硬件版本01，主版本03，次版本 08
 #define DEVICE_NUM_MAX	225
 
  //保存设备信息的首地址(最后2K的开始地址为0x0800F800)

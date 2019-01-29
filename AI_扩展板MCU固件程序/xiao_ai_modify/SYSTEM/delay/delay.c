@@ -2,51 +2,32 @@
 
 #include "delay.h"
 
-static uint32_t fac_us = 0; //us延时倍乘数
-/* 
-********************************************************************************************************* 
-*  函 数 名: delay_init 
-*  功能说明: 初始化延迟函数
-*  形    参: SYSCLK:系统时钟频率
-*  返 回 值: 无  
-********************************************************************************************************* 
-*/ 
-void delay_init(uint8_t SYSCLK)
+void delay_init(void)
 {
-    fac_us = SYSCLK; //不论是否使用OS,fac_us都需要使用
+    TIM_TimeBaseInitTypeDef TIM_TimeBaseInitStruct;
+    
+    RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE);
+    
+    TIM_TimeBaseStructInit(&TIM_TimeBaseInitStruct);
+    TIM_TimeBaseInitStruct.TIM_ClockDivision = TIM_CKD_DIV1;
+    TIM_TimeBaseInitStruct.TIM_CounterMode = TIM_CounterMode_Down;
+    TIM_TimeBaseInitStruct.TIM_Period = 100-1;
+    TIM_TimeBaseInitStruct.TIM_Prescaler = (72-1);
+    TIM_TimeBaseInit(TIM3, &TIM_TimeBaseInitStruct);
+    
+    while((TIM3->SR & TIM_FLAG_Update)!=SET);
+    TIM3->SR = (uint16_t)~TIM_FLAG_Update;
 }
 
-/*
-********************************************************************************************************* 
-*  函 数 名: delay_us 
-*  功能说明: 延时nus 
-*  形    参: nus为要延时的us数,nus:0~190887435(最大值即2^32/fac_us@fac_us=22.5)
-*  返 回 值: 无  
-********************************************************************************************************* 
-*/ 
+
 void delay_us(uint32_t nus)
 {
-    uint32_t ticks;
-    uint32_t told, tnow, tcnt = 0;
-    uint32_t reload = SysTick->LOAD; //LOAD的值
-    ticks = nus * fac_us;            //需要的节拍数
-    told = SysTick->VAL;             //刚进入时的计数器值
-    while (1)
-    {
-        tnow = SysTick->VAL;
-        if (tnow != told)
-        {
-            if (tnow < told)
-                tcnt += told - tnow; //这里注意一下SYSTICK是一个递减的计数器就可以了.
-            else
-                tcnt += reload - tnow + told;
-            told = tnow;
-            if (tcnt >= ticks)
-                break; //时间超过/等于要延迟的时间,则退出.
-        }
-    };
+    TIM3->CNT = nus-1;
+    TIM3->CR1 |= TIM_CR1_CEN;    
+    while((TIM3->SR & TIM_FLAG_Update)!=SET);
+    TIM3->SR = (uint16_t)~TIM_FLAG_Update;
+    TIM3->CR1 &= ~TIM_CR1_CEN;
 }
-
 
 /*
 ********************************************************************************************************* 

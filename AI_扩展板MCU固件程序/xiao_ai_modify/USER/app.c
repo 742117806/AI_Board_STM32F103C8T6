@@ -106,7 +106,6 @@ void vTouchProcess(eKEY_VALUE key_now)
         //DebugPrintf("\nKEY1_PRES_S");
         KeyUpReportCmd(0x01,0);
         SN3218_LedStaSet(0,OFF);		//所有LED灭
-        LED_CenterStaSet(ON);
         LedDispKey1(LED_COLOR_ORANG,ON);
         key_last = key_now;
 
@@ -133,10 +132,8 @@ void vTouchProcess(eKEY_VALUE key_now)
     case KEY3_PRES_S:		//短按
         KeyUpReportCmd(0x04,0);
         SN3218_LedStaSet(0,OFF);		//所有LED灭
-        LED_CenterStaSet(ON);
         LedDispKey3(LED_COLOR_ORANG,ON);
         key_last = key_now;
-
         break;
     case KEY3_PRES_L:		//长按
         key_last = key_now;
@@ -251,7 +248,7 @@ void  LedModeSet(uint8_t mode,LED_Color_t color)
         led_last_mode  = led_set_mode;
         break;
     case CENTRE_MODE:   //中间灯模式
-        LED_CenterStaSet(ON);
+		LED_CenterOn();
         break;
     case AROUND_INDEX:  //外围灯按个点亮
         LedDispVol(color);
@@ -328,7 +325,7 @@ void vLedCtrlModeLoop(uint8_t mode,uint8_t color)
 		 LED_AroundBreath((LED_Color_t)color,2);
         break;
     case AROUND_ON:     //外围灯点亮	
-		vLedAroundDeal(BLUE);
+		//vLedAroundDeal(BLUE);
         break;
     case AROUND_FLOW:   //外围灯流水模式
 		LED_AroundFlow((LED_Color_t)color,2);
@@ -412,6 +409,8 @@ void vWirelessSendBytes(uint8_t ch, uint8_t *buff, uint8_t len)
 */
 void vWirelessRecvProcess(void)
 {
+	uint8_t com_rdata;
+	
     if(WIRELESS_STATUS == Wireless_RX_Finish)
     {
 
@@ -426,12 +425,16 @@ void vWirelessRecvProcess(void)
 	    WIRELESS_STATUS = Wireless_RX_Receiving;
 	}
 
-	if(sUart2Rx.status == UartRx_FrameHead)
+	if(sUart2Rx.status == UartRx_Finished)
 	{
 		vTaskDelay(3);
 		//CarrierSendBytes(sUart2Rx.frame_buff,sUart2Rx.total_len);
 		vWirelessFrameDeal(sUart2Rx.frame_buff,sUart2Rx.total_len,1);
 		sUart2Rx.status = UartRx_FrameHead;
+	}
+	else if(comGetChar(COM2,&com_rdata)==1)
+	{
+		vUartRxFrame(com_rdata,&sUart2Rx,1);
 	}
 		
 
@@ -522,6 +525,12 @@ void vFrameDeviceCtrlReorganize(QUEUE_WIRELESS_SEND_t *queueMsg)
     uint8_t index;
     uint8_t old_frame_len = 0;
     BaseType_t xResult;
+	
+	uint8_t carrier_buff[100]={0};
+	uint8_t carrier_len = queueMsg->len;
+	
+	memcpy(carrier_buff,queueMsg->msg,queueMsg->len);    //保存原来的命令数据
+		
     wait_frameNum = queueMsg->msg[Region_SeqNumber] & 0x0f;     //等待的帧号
     old_frame_len = queueMsg->len;
 
@@ -589,13 +598,14 @@ void vFrameDeviceCtrlReorganize(QUEUE_WIRELESS_SEND_t *queueMsg)
     }
 	#endif
 
-    if((reSendCnt == 1)&&(DeviceCtrlCurrentState.MatchCnt > 1))
+    //if((reSendCnt == 1)&&(DeviceCtrlCurrentState.MatchCnt > 1))
+	if(reSendCnt > 0)
     {
         DebugPrintf("\n设备控制失败");
         DeviceCtrlCurrentState.MatchCnt = 0;
 
 		//DeviceCtrlFromeRouteTable(queueMsg->msg[4],routPath,queueMsg);            //进行路由路径控制			
-		CarrierSendBytes(queueMsg->msg,queueMsg->len);
+		CarrierSendBytes(carrier_buff,carrier_len);                //发载波
 	
     }
 
@@ -615,7 +625,7 @@ void vFrameDeviceMacthNet(QUEUE_WIRELESS_SEND_t *queueMsg)
     uint32_t value;
     BaseType_t xResult;
 	uint8_t carrier_buff[100]={0};
-	uint8_t carrier_len = 0;
+	uint8_t carrier_len = queueMsg->len;
 	
 	memcpy(carrier_buff,queueMsg->msg,queueMsg->len);    //保存原来的命令数据
 
@@ -625,7 +635,7 @@ void vFrameDeviceMacthNet(QUEUE_WIRELESS_SEND_t *queueMsg)
     }
     else
     {
-        DeviceMatcheCurrentState.MatchCnt = 0;
+        DeviceMatcheCurrentState.MatchCnt = 1;
         DeviceMatcheCurrentState.addr = queueMsg->msg[Region_AddrNumber];
     }
 
@@ -694,7 +704,7 @@ void vFrameDeviceMacthNet(QUEUE_WIRELESS_SEND_t *queueMsg)
 
 
 
-    if((reSendCnt == 1)&&(DeviceMatcheCurrentState.MatchCnt > 4))
+    //if((reSendCnt == 1)&&(DeviceMatcheCurrentState.MatchCnt > 3))
     {
         DebugPrintf("\n配网失败");
         DeviceMatcheCurrentState.MatchCnt = 0;

@@ -198,7 +198,7 @@ extern const uint8_t CMD_CTRL[][3];
 extern const uint8_t CMD_DEVICE_CTRL[][3];
 
 uint8_t Frame_Compose(uint8_t *p);
-void vUartRxFrame(uint8_t rx_data, sUartRx_t *pu_buf);
+void vUartRxFrame(uint8_t rx_data, sUartRx_t *pu_buf,uint8_t mode);
 void vUartFrameProcess(sUartRx_t *pbuff);
 void vUartAesProcess(sUartRx_t *pbuff);
 void FrameCmdLocalAck(uint8_t *cmdBuff,uint8_t cmdLen,uint8_t *userDat,uint8_t userLen);

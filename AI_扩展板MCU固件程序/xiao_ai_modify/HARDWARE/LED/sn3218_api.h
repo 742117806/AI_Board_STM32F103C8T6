@@ -33,6 +33,7 @@ void LED_AroundBreath(LED_Color_t color,uint8_t speed);
 void LedDispKey1(LED_Color_t color,uint8_t sta);
 void LedDispKey3(LED_Color_t color,uint8_t sta);
 void LedDispVol(uint8_t vol);
+void LED_CenterOn(void);
 
 
 
